@@ -211,6 +211,23 @@ function getNextQuestion(central, lastQ) {
       condition: () => falta.includes('objetivos'),
       q: () => 'Última pregunta: pensando más a largo plazo... ¿qué te gustaría lograr en tu vida? No tiene que ser concreto, lo que sientas.',
     },
+
+    // ── FASE 8: Retroactive data for richer metrics ──
+    {
+      id: 'retro_semana_pasada',
+      condition: () => central.estados.length <= 3 && central.habits.length >= 1 && !lastQ?.startsWith('retro'),
+      q: () => 'Para que tu dashboard tenga datos útiles desde ya... ¿cómo fue tu semana pasada en general? ¿Buena, regular, mala? Cuéntame en pocas palabras.',
+    },
+    {
+      id: 'retro_semana_anterior',
+      condition: () => central.estados.length > 3 && central.estados.length < 12 && lastQ === 'retro_semana_pasada',
+      q: () => '¿Y la semana anterior a esa? ¿Cómo andabas?',
+    },
+    {
+      id: 'retro_mes',
+      condition: () => central.estados.length >= 12 && central.estados.length < 20 && lastQ === 'retro_semana_anterior',
+      q: () => '¿Y en general este último mes? ¿Altibajos o más estable?',
+    },
   ];
 
   // Re-check hasEstadoHoy from fresh data each time
@@ -537,6 +554,75 @@ function processAnswer(text, questionId, central) {
       };
     }
 
+    case 'retro_semana_pasada': {
+      const estado = detectEmotionalState(tl);
+      const emocion = detectEmocionFromText(tl);
+      for (let i = 7; i >= 1; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const fecha = d.toISOString().split('T')[0];
+        const v = Math.round((Math.random() - 0.5) * 1.2);
+        try {
+          db.saveEstadoObligatorio(fecha, 'tarde', {
+            estado_general: Math.max(1, Math.min(5, estado.estado_general + v)),
+            energia: Math.max(1, Math.min(5, estado.energia + v)),
+            estres: Math.max(1, Math.min(5, estado.estres - v)),
+            enfoque: Math.max(1, Math.min(5, (estado.enfoque || 3) + v)),
+            emocion: emocion,
+            contexto: '',
+            nota: 'Retroactivo: semana pasada',
+          });
+        } catch(e) {}
+      }
+      saved.push({ field: 'estado retroactivo', value: '7 días' });
+      return { messages: ['Listo, registré tu semana pasada. Eso me ayuda a armar un mejor perfil para ti. 📊'], saved };
+    }
+
+    case 'retro_semana_anterior': {
+      const estado = detectEmotionalState(tl);
+      const emocion = detectEmocionFromText(tl);
+      for (let i = 14; i >= 8; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const fecha = d.toISOString().split('T')[0];
+        const v = Math.round((Math.random() - 0.5) * 1.2);
+        try {
+          db.saveEstadoObligatorio(fecha, 'tarde', {
+            estado_general: Math.max(1, Math.min(5, estado.estado_general + v)),
+            energia: Math.max(1, Math.min(5, estado.energia + v)),
+            estres: Math.max(1, Math.min(5, estado.estres - v)),
+            enfoque: Math.max(1, Math.min(5, (estado.enfoque || 3) + v)),
+            emocion: emocion,
+            contexto: '',
+            nota: 'Retroactivo: hace 2 semanas',
+          });
+        } catch(e) {}
+      }
+      saved.push({ field: 'estado retroactivo', value: '14 días' });
+      return { messages: ['Perfecto, ya tengo 2 semanas de datos. Tu dashboard va a tener más info ahora. 📈'], saved };
+    }
+
+    case 'retro_mes': {
+      const estado = detectEmotionalState(tl);
+      const emocion = detectEmocionFromText(tl);
+      for (let i = 28; i >= 15; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        const fecha = d.toISOString().split('T')[0];
+        const v = Math.round((Math.random() - 0.5) * 1.4);
+        try {
+          db.saveEstadoObligatorio(fecha, 'tarde', {
+            estado_general: Math.max(1, Math.min(5, estado.estado_general + v)),
+            energia: Math.max(1, Math.min(5, estado.energia + v)),
+            estres: Math.max(1, Math.min(5, estado.estres - v)),
+            enfoque: Math.max(1, Math.min(5, (estado.enfoque || 3) + v)),
+            emocion: emocion,
+            contexto: '',
+            nota: 'Retroactivo: mes pasado',
+          });
+        } catch(e) {}
+      }
+      saved.push({ field: 'estado retroactivo', value: '28 días' });
+      return { messages: ['¡Ahora sí! Con casi un mes de datos tu dashboard va a tener métricas completas. 🎉'], saved };
+    }
+
     default:
       return null;
   }
@@ -586,6 +672,70 @@ function processFreeMessage(text, central) {
       try { db.createWeeklyObjective({ name, area: detectArea(name), priority: 'media', deadline: null, week_start: db.weekStartStr() }); } catch(e) {}
       response.messages.push(`Objetivo creado: "${name}". ✅`);
       response.saved.push({ field: 'objetivo', value: name });
+      return response;
+    }
+  }
+
+  // ── Module: Objetivos ──
+  if (/mis objetivos|objetivos|metas|qué metas/.test(tl)) {
+    if (central.weeklyObjs.length === 0 && central.monthlyObjs.length === 0) {
+      response.messages.push('No tienes objetivos aún. Dime algo como "mi objetivo es correr 3 veces esta semana" y lo creo, o ve a /objectives');
+      return response;
+    }
+    const objs = [...central.weeklyObjs, ...central.monthlyObjs];
+    response.messages.push('Tus objetivos actuales:');
+    objs.forEach(o => response.messages.push(`• ${o.name} ${o.completed ? '✅' : '⬜'}`));
+    return response;
+  }
+
+  // ── Module: Rutina ──
+  if (/mi rutina|rutina|horario/.test(tl)) {
+    if (central.rutinaBloques < 5) {
+      response.messages.push('No tienes rutina armada. Dime a qué hora te levantas y acuestas y te armo una, o ve a /rutina');
+      return response;
+    }
+    // Show today's routine
+    const dias = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+    const hoy = dias[new Date().getDay()];
+    const bloques = central.rutina[hoy] || [];
+    if (bloques.length > 0) {
+      response.messages.push(`Tu rutina de hoy (${hoy}):`);
+      bloques.slice(0, 6).forEach(b => response.messages.push(`• ${b.inicio}-${b.fin}: ${b.bloque}`));
+      if (bloques.length > 6) response.messages.push(`...y ${bloques.length - 6} bloques más`);
+    }
+    return response;
+  }
+
+  // ── Module: Reflexión ──
+  if (/reflex|reflexión|reflexion|reflexionar/.test(tl)) {
+    const todayRef = central.reflexiones.find(r => r.fecha === central.today);
+    if (!todayRef) {
+      response.messages.push('No has hecho tu reflexión de hoy. ¿Qué te quitó energía hoy? ¿Y qué te la dio? Cuéntame o ve a /reflexion');
+      return response;
+    }
+    response.messages.push('Ya hiciste tu reflexión hoy. ¡Bien! 📝');
+    return response;
+  }
+
+  // ── Module: Notas ──
+  if (/mis notas|notas|diario|cuaderno/.test(tl)) {
+    if (central.notas.length === 0) {
+      response.messages.push('No tienes notas aún. Puedes decirme "anotar: comprar vitaminas" y lo guardo, o ve a /notas');
+      return response;
+    }
+    response.messages.push(`Tienes ${central.notas.length} notas. Las más recientes:`);
+    central.notas.slice(0, 3).forEach(n => response.messages.push(`• ${n.titulo || n.contenido?.substring(0, 40)}`));
+    return response;
+  }
+
+  // ── Save note via chat ──
+  const notaMatch = tl.match(/(?:anotar?|guardar?|apuntar?|nota(?:r)?)[:\s]+(.+)/i);
+  if (notaMatch) {
+    const contenido = notaMatch[1].trim();
+    if (contenido.length > 2) {
+      try { db.createNota({ fecha: central.today, titulo: 'Nota desde Pulse', contenido: capitalize(contenido) }); } catch(e) {}
+      response.messages.push(`Anotado: "${capitalize(contenido)}" 📝`);
+      response.saved.push({ field: 'nota', value: contenido });
       return response;
     }
   }
@@ -689,7 +839,17 @@ function buildTodayPlan(central) {
   }
 
   if (response.messages.length === 0) {
-    response.messages.push('Todavía no hay mucho registrado hoy. Cuéntame cómo estás y empezamos.');
+    const suggestions = [];
+    if (central.habits.length === 0) suggestions.push('• Crear hábitos → /habits');
+    if (central.weeklyObjs.length === 0) suggestions.push('• Definir objetivos → /objectives');
+    if (central.rutinaBloques < 5) suggestions.push('• Armar tu rutina → /rutina');
+    if (suggestions.length > 0) {
+      response.messages.push('Todavía no tienes nada configurado para hoy. Para que tu día tenga estructura puedes:');
+      suggestions.forEach(s => response.messages.push(s));
+      response.messages.push('O cuéntame qué quieres lograr y lo armamos juntos. 💬');
+    } else {
+      response.messages.push('Todo tranqui hoy. ¿Necesitas algo?');
+    }
   }
 
   return response;
@@ -700,7 +860,7 @@ function buildHabitsReport(central) {
   const response = { messages: [], saved: [] };
 
   if (central.habitStats.length === 0) {
-    response.messages.push('No tienes hábitos todavía. ¿Quieres crear alguno?');
+    response.messages.push('No tienes hábitos todavía. Dime algo como "quiero hacer ejercicio" y te lo creo, o ve a /habits');
     return response;
   }
 
@@ -725,6 +885,11 @@ function buildHabitsReport(central) {
 /* ── Week report ── */
 function buildWeekReport(central) {
   const response = { messages: [], saved: [] };
+
+  if (central.estados.length === 0 && central.habitStats.length === 0) {
+    response.messages.push('No tienes datos de esta semana todavía. Cuéntame cómo te ha ido o ve registrando tu estado diario para ver reportes aquí.');
+    return response;
+  }
 
   if (central.estados.length > 0) {
     const avg = (field) => {
@@ -1059,7 +1224,15 @@ function detectEmocionFromText(text) {
   if (/aburrido|aburrid/.test(text)) return 'Aburrido';
   if (/desmotivad|apatico|apátic/.test(text)) return 'Desmotivado';
   if (/motivad|inspir|con ganas/.test(text)) return 'Motivado';
-  if (/satisfech|orgullos/.test(text)) return 'Satisfecho';
+  if (/satisfech/.test(text)) return 'Satisfecho';
+  if (/orgullos/.test(text)) return 'orgulloso';
+  if (/agradecid/.test(text)) return 'agradecido';
+  if (/nervios/.test(text)) return 'nervioso';
+  if (/abrumad/.test(text)) return 'abrumado';
+  if (/esperanz/.test(text)) return 'esperanzado';
+  if (/nost[aá]lgic/.test(text)) return 'nostalgico';
+  if (/sol[oa]$|soled/.test(text)) return 'solo';
+  if (/insegur/.test(text)) return 'inseguro';
   if (/esperanzad|optimist/.test(text)) return 'Esperanzado';
   return '';
 }

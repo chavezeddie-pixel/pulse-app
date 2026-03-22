@@ -648,26 +648,36 @@ function getEstadoPendiente(fecha) {
 
 /* ── Emotion circumplex mapping ── */
 const EMOCIONES_MAP = {
+  // Neutral
+  'ninguna':     { valencia: 'neutra', arousal: 'neutra' },
   // High energy + Positive
   'motivado':    { valencia: 'positiva', arousal: 'alta' },
   'feliz':       { valencia: 'positiva', arousal: 'alta' },
   'inspirado':   { valencia: 'positiva', arousal: 'alta' },
   'entusiasmado':{ valencia: 'positiva', arousal: 'alta' },
+  'orgulloso':   { valencia: 'positiva', arousal: 'alta' },
+  'agradecido':  { valencia: 'positiva', arousal: 'baja' },
   // Low energy + Positive
   'tranquilo':   { valencia: 'positiva', arousal: 'baja' },
   'relajado':    { valencia: 'positiva', arousal: 'baja' },
   'satisfecho':  { valencia: 'positiva', arousal: 'baja' },
   'en_paz':      { valencia: 'positiva', arousal: 'baja' },
+  'esperanzado': { valencia: 'positiva', arousal: 'baja' },
+  'nostalgico':  { valencia: 'positiva', arousal: 'baja' },
   // High energy + Negative
   'ansioso':     { valencia: 'negativa', arousal: 'alta' },
   'enojado':     { valencia: 'negativa', arousal: 'alta' },
   'frustrado':   { valencia: 'negativa', arousal: 'alta' },
   'estresado':   { valencia: 'negativa', arousal: 'alta' },
+  'nervioso':    { valencia: 'negativa', arousal: 'alta' },
+  'abrumado':    { valencia: 'negativa', arousal: 'alta' },
   // Low energy + Negative
   'triste':      { valencia: 'negativa', arousal: 'baja' },
   'agotado':     { valencia: 'negativa', arousal: 'baja' },
   'aburrido':    { valencia: 'negativa', arousal: 'baja' },
   'apatico':     { valencia: 'negativa', arousal: 'baja' },
+  'solo':        { valencia: 'negativa', arousal: 'baja' },
+  'inseguro':    { valencia: 'negativa', arousal: 'baja' },
 };
 
 function calcularIndices(data) {

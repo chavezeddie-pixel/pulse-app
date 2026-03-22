@@ -115,6 +115,7 @@
     .emo-chip.selected { background:rgba(244,132,95,.2); border-color:#f4845f; color:#f4845f; }
     .emo-chip .emo-emoji { font-size:1.1rem; display:block; margin-bottom:.1rem; }
     .emo-chip input { display:none; }
+    .emo-ninguna { grid-column: 1 / -1; background: rgba(254,249,239,.06); justify-content:center; }
 
     /* ── Context pills ── */
     .ctx-section { margin-bottom:.8rem; }
@@ -308,29 +309,38 @@
         <div class="emo-section">
           <label>¿Emoción predominante?</label>
           <div class="emo-grid" id="emoGrid">
+            <div class="emo-chip emo-ninguna" data-val="ninguna" onclick="selectEmo(this)"><span class="emo-emoji">🤷</span>Ninguna<input type="radio" name="emocion" value="ninguna"/></div>
             <div class="emo-quadrant-label">⬆️ Alta energía · Positivo</div>
             <div class="emo-chip" data-val="motivado" onclick="selectEmo(this)"><span class="emo-emoji">🔥</span>Motivado<input type="radio" name="emocion" value="motivado"/></div>
             <div class="emo-chip" data-val="feliz" onclick="selectEmo(this)"><span class="emo-emoji">😄</span>Feliz<input type="radio" name="emocion" value="feliz"/></div>
             <div class="emo-chip" data-val="inspirado" onclick="selectEmo(this)"><span class="emo-emoji">✨</span>Inspirado<input type="radio" name="emocion" value="inspirado"/></div>
             <div class="emo-chip" data-val="entusiasmado" onclick="selectEmo(this)"><span class="emo-emoji">🚀</span>Entusiasmado<input type="radio" name="emocion" value="entusiasmado"/></div>
+            <div class="emo-chip" data-val="orgulloso" onclick="selectEmo(this)"><span class="emo-emoji">🏆</span>Orgulloso<input type="radio" name="emocion" value="orgulloso"/></div>
+            <div class="emo-chip" data-val="agradecido" onclick="selectEmo(this)"><span class="emo-emoji">🙏</span>Agradecido<input type="radio" name="emocion" value="agradecido"/></div>
 
             <div class="emo-quadrant-label">⬆️ Alta energía · Negativo</div>
             <div class="emo-chip" data-val="ansioso" onclick="selectEmo(this)"><span class="emo-emoji">😰</span>Ansioso<input type="radio" name="emocion" value="ansioso"/></div>
             <div class="emo-chip" data-val="enojado" onclick="selectEmo(this)"><span class="emo-emoji">😤</span>Enojado<input type="radio" name="emocion" value="enojado"/></div>
             <div class="emo-chip" data-val="frustrado" onclick="selectEmo(this)"><span class="emo-emoji">😣</span>Frustrado<input type="radio" name="emocion" value="frustrado"/></div>
             <div class="emo-chip" data-val="estresado" onclick="selectEmo(this)"><span class="emo-emoji">🤯</span>Estresado<input type="radio" name="emocion" value="estresado"/></div>
+            <div class="emo-chip" data-val="nervioso" onclick="selectEmo(this)"><span class="emo-emoji">😰</span>Nervioso<input type="radio" name="emocion" value="nervioso"/></div>
+            <div class="emo-chip" data-val="abrumado" onclick="selectEmo(this)"><span class="emo-emoji">🤯</span>Abrumado<input type="radio" name="emocion" value="abrumado"/></div>
 
             <div class="emo-quadrant-label">⬇️ Baja energía · Positivo</div>
             <div class="emo-chip" data-val="tranquilo" onclick="selectEmo(this)"><span class="emo-emoji">😌</span>Tranquilo<input type="radio" name="emocion" value="tranquilo"/></div>
             <div class="emo-chip" data-val="relajado" onclick="selectEmo(this)"><span class="emo-emoji">🧘</span>Relajado<input type="radio" name="emocion" value="relajado"/></div>
             <div class="emo-chip" data-val="satisfecho" onclick="selectEmo(this)"><span class="emo-emoji">😊</span>Satisfecho<input type="radio" name="emocion" value="satisfecho"/></div>
             <div class="emo-chip" data-val="en_paz" onclick="selectEmo(this)"><span class="emo-emoji">☮️</span>En paz<input type="radio" name="emocion" value="en_paz"/></div>
+            <div class="emo-chip" data-val="esperanzado" onclick="selectEmo(this)"><span class="emo-emoji">🌱</span>Esperanzado<input type="radio" name="emocion" value="esperanzado"/></div>
+            <div class="emo-chip" data-val="nostalgico" onclick="selectEmo(this)"><span class="emo-emoji">💭</span>Nostálgico<input type="radio" name="emocion" value="nostalgico"/></div>
 
             <div class="emo-quadrant-label">⬇️ Baja energía · Negativo</div>
             <div class="emo-chip" data-val="triste" onclick="selectEmo(this)"><span class="emo-emoji">😢</span>Triste<input type="radio" name="emocion" value="triste"/></div>
             <div class="emo-chip" data-val="agotado" onclick="selectEmo(this)"><span class="emo-emoji">😩</span>Agotado<input type="radio" name="emocion" value="agotado"/></div>
             <div class="emo-chip" data-val="aburrido" onclick="selectEmo(this)"><span class="emo-emoji">😑</span>Aburrido<input type="radio" name="emocion" value="aburrido"/></div>
             <div class="emo-chip" data-val="apatico" onclick="selectEmo(this)"><span class="emo-emoji">😶</span>Apático<input type="radio" name="emocion" value="apatico"/></div>
+            <div class="emo-chip" data-val="solo" onclick="selectEmo(this)"><span class="emo-emoji">🫥</span>Solo<input type="radio" name="emocion" value="solo"/></div>
+            <div class="emo-chip" data-val="inseguro" onclick="selectEmo(this)"><span class="emo-emoji">😟</span>Inseguro<input type="radio" name="emocion" value="inseguro"/></div>
           </div>
         </div>
 
