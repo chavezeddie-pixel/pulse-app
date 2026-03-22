@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: pulse-app
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_PIN
+        value: 1234
+      - key: PORT
+        value: 3000
