@@ -1,7 +1,9 @@
 node_modules/
-data/*.db
-data/demo_*
-.env
+data/
+.env*
 logs/
 .DS_Store
 .claude/
+*.db
+*.db-shm
+*.db-wal
