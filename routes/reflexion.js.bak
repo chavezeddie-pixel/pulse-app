@@ -1,0 +1,37 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../database');
+
+router.get('/', (req, res) => {
+  const today = db.todayStr();
+  const reflexion = db.getReflexion(today);
+  res.render('reflexion', { today, reflexion, page: 'reflexion' });
+});
+
+router.post('/', (req, res) => {
+  const data = {
+    fecha: req.body.fecha || db.todayStr(),
+    energia_roba: req.body.energia_roba || '',
+    energia_da: req.body.energia_da || '',
+    freno: req.body.freno || '',
+    familia: parseInt(req.body.familia) || 3,
+    logro: req.body.logro || '',
+    aprendizaje: req.body.aprendizaje || '',
+    diferente: req.body.diferente || '',
+    satisfaccion: parseInt(req.body.satisfaccion) || 5,
+    claridad_cierre: parseInt(req.body.claridad_cierre) || 5,
+    enfoque: parseInt(req.body.enfoque) || 5,
+  };
+  db.upsertReflexion(data);
+  res.redirect('/reflexion');
+});
+
+router.get('/metricas', (req, res) => {
+  const today = db.todayStr();
+  const d30 = new Date(); d30.setDate(d30.getDate()-29);
+  const start30 = d30.toISOString().split('T')[0];
+  const reflexiones = db.getReflexionesRange(start30, today);
+  res.render('reflexion-metricas', { reflexiones, page: 'reflexion' });
+});
+
+module.exports = router;

@@ -1,0 +1,428 @@
+<%- include('partials/header') %>
+
+<style>
+/* ───── Reflexión Métricas ───── */
+.rm-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:.75rem; }
+.rm-stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:.75rem; margin-bottom:1.5rem; }
+.rm-stat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; text-align:center; }
+.rm-stat .val { font-size:1.8rem; font-weight:700; line-height:1; margin-bottom:.25rem; }
+.rm-stat .lbl { font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+.rm-stat .sub { font-size:.75rem; color:var(--text-muted); margin-top:.2rem; }
+.rm-stat.green .val  { color:#22c55e; }
+.rm-stat.blue .val   { color:#6366f1; }
+.rm-stat.amber .val  { color:#f59e0b; }
+.rm-stat.purple .val { color:#a855f7; }
+.rm-stat.red .val    { color:#ef4444; }
+
+/* Layout */
+.rm-body { display:grid; grid-template-columns:1fr 300px; gap:1.25rem; align-items:start; }
+@media(max-width:860px){ .rm-body { grid-template-columns:1fr; } }
+
+/* Calendar */
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-day { border-radius:6px; aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  font-size:.7rem; font-weight:600; cursor:pointer; transition:transform .15s; position:relative; }
+.cal-day:hover { transform:scale(1.15); z-index:2; }
+.cal-day.empty { background:transparent; cursor:default; }
+.cal-day.no-data { background:var(--surface); border:1px dashed var(--border); color:var(--text-muted); }
+.cal-day-tooltip { position:absolute; bottom:110%; left:50%; transform:translateX(-50%);
+  background:#1e293b; color:#fff; padding:.3rem .5rem; border-radius:6px; font-size:.65rem;
+  white-space:nowrap; pointer-events:none; opacity:0; transition:opacity .15s; z-index:10; }
+.cal-day:hover .cal-day-tooltip { opacity:1; }
+.dow-labels { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px; }
+.dow-label { font-size:.62rem; color:var(--text-muted); text-align:center; }
+
+/* Pattern bars */
+.pat-bar { margin-bottom:.7rem; }
+.pat-bar-top { display:flex; justify-content:space-between; font-size:.8rem; margin-bottom:.25rem; }
+.pat-bar-track { height:7px; background:var(--surface); border-radius:99px; overflow:hidden; }
+.pat-bar-fill { height:100%; border-radius:99px; transition:width .4s; }
+.fill-green  { background:#22c55e; }
+.fill-amber  { background:#f59e0b; }
+.fill-red    { background:#ef4444; }
+.fill-indigo { background:#6366f1; }
+
+/* Logros */
+.logros-grid { display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
+@media(max-width:600px){ .logros-grid { grid-template-columns:1fr; } }
+.logro-card { background:var(--surface); border:1px solid var(--border); border-radius:10px;
+  padding:.75rem; font-size:.82rem; line-height:1.4; position:relative; }
+.logro-date { font-size:.68rem; color:var(--text-muted); margin-bottom:.3rem; }
+.logro-score { position:absolute; top:.5rem; right:.6rem; font-size:.7rem; font-weight:700;
+  background:#22c55e22; color:#22c55e; padding:.1rem .4rem; border-radius:99px; }
+
+/* Aprendizajes */
+.aprendizaje-item { display:flex; gap:.75rem; padding:.7rem 0; border-bottom:1px solid var(--border); }
+.aprendizaje-item:last-child { border-bottom:none; }
+.ap-icon { font-size:1.2rem; flex-shrink:0; margin-top:.1rem; }
+.ap-body { flex:1; }
+.ap-text { font-size:.83rem; line-height:1.4; }
+.ap-date { font-size:.68rem; color:var(--text-muted); margin-top:.2rem; }
+
+/* Sidebar cards */
+.side-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; margin-bottom:1rem; }
+.side-card h3 { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:.75rem; }
+.best-day { background:linear-gradient(135deg,#22c55e11,#22c55e22); border-color:#22c55e44; border-radius:10px; padding:.75rem; margin-bottom:.5rem; }
+.worst-day { background:linear-gradient(135deg,#ef444411,#ef444422); border-color:#ef444444; border-radius:10px; padding:.75rem; }
+.day-date { font-size:.7rem; color:var(--text-muted); margin-bottom:.25rem; }
+.day-score { font-size:1.5rem; font-weight:700; }
+.day-text { font-size:.75rem; color:var(--text-muted); margin-top:.2rem; line-height:1.3; }
+.best-day .day-score { color:#22c55e; }
+.worst-day .day-score { color:#ef4444; }
+
+/* Insights */
+.insight-item { display:flex; gap:.6rem; align-items:flex-start; padding:.5rem 0; border-bottom:1px solid var(--border); font-size:.8rem; line-height:1.4; }
+.insight-item:last-child { border-bottom:none; }
+.insight-icon { font-size:1rem; flex-shrink:0; }
+
+/* Last 7 mini list */
+.mini-ref { display:flex; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid var(--border); font-size:.78rem; }
+.mini-ref:last-child { border-bottom:none; }
+.mini-ref .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.mini-ref .fecha { color:var(--text-muted); width:52px; flex-shrink:0; }
+.mini-ref .score { margin-left:auto; font-weight:600; }
+
+/* Tendencia badge */
+.tend-badge { display:inline-flex; align-items:center; gap:.3rem; padding:.3rem .7rem; border-radius:99px; font-size:.78rem; font-weight:600; }
+.tend-up   { background:#22c55e22; color:#22c55e; }
+.tend-down { background:#ef444422; color:#ef4444; }
+.tend-flat { background:#6366f122; color:#6366f1; }
+</style>
+
+<div class="rm-header">
+  <div>
+    <h1 class="page-title">📊 Métricas de Reflexión</h1>
+    <p class="page-subtitle">Patrones de los últimos 30 días</p>
+  </div>
+  <a href="/reflexion" class="btn btn-primary">+ Reflexión de hoy</a>
+</div>
+
+<% const s = locals.stats; %>
+
+<% if (!s) { %>
+<div class="empty-card" style="text-align:center;padding:3rem">
+  <div style="font-size:3rem;margin-bottom:1rem">📓</div>
+  <p style="color:var(--text-muted);margin-bottom:1.25rem">Aún no tienes reflexiones registradas.</p>
+  <a href="/reflexion" class="btn btn-primary">Escribir mi primera reflexión</a>
+</div>
+<% } else { %>
+
+<!-- ── Stat cards ── -->
+<div class="rm-stat-grid">
+  <div class="rm-stat blue">
+    <div class="val"><%= s.total %></div>
+    <div class="lbl">Reflexiones</div>
+    <div class="sub"><%= s.pct30 %>% del mes</div>
+  </div>
+  <div class="rm-stat green">
+    <div class="val"><%= s.racha %><span style="font-size:1rem">🔥</span></div>
+    <div class="lbl">Racha actual</div>
+    <div class="sub">días consecutivos</div>
+  </div>
+  <div class="rm-stat amber">
+    <div class="val"><%= s.avgSat %></div>
+    <div class="lbl">Satisfacción</div>
+    <div class="sub">promedio /10</div>
+  </div>
+  <div class="rm-stat purple">
+    <div class="val"><%= s.avgEnf %></div>
+    <div class="lbl">Enfoque</div>
+    <div class="sub">promedio /10</div>
+  </div>
+  <div class="rm-stat blue">
+    <div class="val"><%= s.avgClar %></div>
+    <div class="lbl">Claridad</div>
+    <div class="sub">promedio /10</div>
+  </div>
+  <div class="rm-stat green">
+    <div class="val"><%= s.diasAltos %></div>
+    <div class="lbl">Días buenos</div>
+    <div class="sub">satisfacción ≥7</div>
+  </div>
+  <div class="rm-stat red">
+    <div class="val"><%= s.diasBajos %></div>
+    <div class="lbl">Días difíciles</div>
+    <div class="sub">satisfacción ≤4</div>
+  </div>
+</div>
+
+<!-- ── Main body ── -->
+<div class="rm-body">
+
+  <!-- ── LEFT COLUMN ── -->
+  <div>
+
+    <!-- Chart -->
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+        <h2 class="card-title">📈 Evolución</h2>
+        <% if (s.tendencia !== null) { %>
+          <span class="tend-badge <%= parseFloat(s.tendencia)>0?'tend-up':parseFloat(s.tendencia)<0?'tend-down':'tend-flat' %>">
+            <%= parseFloat(s.tendencia)>0?'↑ Mejorando':parseFloat(s.tendencia)<0?'↓ Bajando':'→ Estable' %>
+            (<%= parseFloat(s.tendencia)>0?'+':'' %><%= s.tendencia %> pts)
+          </span>
+        <% } %>
+      </div>
+      <canvas id="chartEvol" height="90"></canvas>
+    </div>
+
+    <!-- 30-day calendar -->
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <h2 class="card-title">🗓️ Cómo te sentiste — últimos 30 días</h2>
+        <div style="display:flex;gap:.5rem;font-size:.7rem;color:var(--text-muted);align-items:center;flex-wrap:wrap">
+          <span style="display:flex;align-items:center;gap:.25rem"><span style="width:10px;height:10px;border-radius:3px;background:#22c55e;display:inline-block"></span>≥8</span>
+          <span style="display:flex;align-items:center;gap:.25rem"><span style="width:10px;height:10px;border-radius:3px;background:#4ade80;display:inline-block"></span>6-7</span>
+          <span style="display:flex;align-items:center;gap:.25rem"><span style="width:10px;height:10px;border-radius:3px;background:#f59e0b;display:inline-block"></span>4-5</span>
+          <span style="display:flex;align-items:center;gap:.25rem"><span style="width:10px;height:10px;border-radius:3px;background:#ef4444;display:inline-block"></span>≤3</span>
+        </div>
+      </div>
+      <div class="dow-labels">
+        <% ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(d => { %><div class="dow-label"><%= d %></div><% }) %>
+      </div>
+      <%
+        // Pad to start on Sunday
+        const firstDow = calendario[0] ? new Date(calendario[0].date + 'T12:00:00').getDay() : 0;
+      %>
+      <div class="cal-grid">
+        <% for(let p=0;p<firstDow;p++) { %><div class="cal-day empty"></div><% } %>
+        <% calendario.forEach(day => {
+          const bg = day.ref
+            ? (day.sat>=8?'#22c55e':day.sat>=6?'#4ade80':day.sat>=4?'#f59e0b':'#ef4444')
+            : null;
+          const tooltip = day.ref
+            ? `${day.date} · Sat:${day.sat} · Enf:${day.ref.enfoque}`
+            : day.date + ' · sin registro';
+        %>
+        <div class="cal-day <%= day.ref?'':'no-data' %>"
+             style="<%= day.ref ? 'background:'+bg+';color:#fff;' : '' %>"
+             title="<%= tooltip %>">
+          <%= day.dayNum %>
+          <span class="cal-day-tooltip"><%= tooltip %></span>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Patterns -->
+    <div class="two-col" style="margin-bottom:1.25rem">
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">⚡ Te roba energía</h2></div>
+        <% if ((locals.patrones?.energia_roba||[]).length === 0) { %>
+          <p style="font-size:.8rem;color:var(--text-muted)">Sin datos aún</p>
+        <% } else { %>
+          <% (locals.patrones.energia_roba||[]).slice(0,5).forEach(p => { %>
+          <div class="pat-bar">
+            <div class="pat-bar-top">
+              <span style="font-size:.8rem"><%= p.label.length>24?p.label.slice(0,24)+'…':p.label %></span>
+              <span style="font-size:.75rem;color:var(--text-muted)"><%= p.count %>x · <%= p.pct %>%</span>
+            </div>
+            <div class="pat-bar-track"><div class="pat-bar-fill fill-red" style="width:<%= p.pct %>%"></div></div>
+          </div>
+          <% }) %>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">✅ Te da energía</h2></div>
+        <% if ((locals.patrones?.energia_da||[]).length === 0) { %>
+          <p style="font-size:.8rem;color:var(--text-muted)">Sin datos aún</p>
+        <% } else { %>
+          <% (locals.patrones.energia_da||[]).slice(0,5).forEach(p => { %>
+          <div class="pat-bar">
+            <div class="pat-bar-top">
+              <span style="font-size:.8rem"><%= p.label.length>24?p.label.slice(0,24)+'…':p.label %></span>
+              <span style="font-size:.75rem;color:var(--text-muted)"><%= p.count %>x · <%= p.pct %>%</span>
+            </div>
+            <div class="pat-bar-track"><div class="pat-bar-fill fill-green" style="width:<%= p.pct %>%"></div></div>
+          </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Frenos -->
+    <% if ((locals.patrones?.freno||[]).length > 0) { %>
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-header"><h2 class="card-title">🚧 Qué te frena</h2></div>
+      <div class="logros-grid">
+        <% (locals.patrones.freno||[]).slice(0,6).forEach(p => { %>
+        <div style="background:var(--surface);border:1px solid var(--border);border-left:3px solid #f59e0b;border-radius:8px;padding:.65rem">
+          <div style="font-size:.82rem;font-weight:600;margin-bottom:.2rem"><%= p.label.length>40?p.label.slice(0,40)+'…':p.label %></div>
+          <div style="font-size:.72rem;color:var(--text-muted)"><%= p.count %> veces · <%= p.pct %>% de reflexiones</div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Logros -->
+    <% if ((locals.logros||[]).length > 0) { %>
+    <div class="card" style="margin-bottom:1.25rem">
+      <div class="card-header"><h2 class="card-title">🏆 Logros destacados</h2></div>
+      <div class="logros-grid">
+        <% (locals.logros||[]).forEach(r => { %>
+        <div class="logro-card">
+          <div class="logro-date"><%= r.fecha %></div>
+          <div class="logro-score"><%= r.satisfaccion %>/10</div>
+          <div><%= r.logro.length>100?r.logro.slice(0,100)+'…':r.logro %></div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Aprendizajes -->
+    <% if ((locals.aprendizajes||[]).length > 0) { %>
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">💡 Aprendizajes recientes</h2></div>
+      <% (locals.aprendizajes||[]).forEach(r => { %>
+      <div class="aprendizaje-item">
+        <div class="ap-icon">📖</div>
+        <div class="ap-body">
+          <div class="ap-text"><%= r.aprendizaje.length>160?r.aprendizaje.slice(0,160)+'…':r.aprendizaje %></div>
+          <div class="ap-date"><%= r.fecha %></div>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+  </div><!-- end left col -->
+
+  <!-- ── RIGHT SIDEBAR ── -->
+  <div>
+
+    <!-- Mejor / Peor día -->
+    <% if (s.mejorDia) { %>
+    <div class="side-card">
+      <h3>Días destacados</h3>
+      <div class="best-day">
+        <div class="day-date">⭐ Mejor día — <%= s.mejorDia.fecha %></div>
+        <div class="day-score"><%= s.mejorDia.satisfaccion %><span style="font-size:.9rem;font-weight:400">/10</span></div>
+        <% if (s.mejorDia.logro) { %>
+        <div class="day-text">"<%= s.mejorDia.logro.slice(0,80) %><%= s.mejorDia.logro.length>80?'…':'' %>"</div>
+        <% } %>
+      </div>
+      <% if (s.peorDia && s.peorDia.fecha !== s.mejorDia.fecha) { %>
+      <div class="worst-day">
+        <div class="day-date">💪 Día difícil — <%= s.peorDia.fecha %></div>
+        <div class="day-score"><%= s.peorDia.satisfaccion %><span style="font-size:.9rem;font-weight:400">/10</span></div>
+        <% if (s.peorDia.diferente) { %>
+        <div class="day-text">Haría diferente: "<%= s.peorDia.diferente.slice(0,80) %>"</div>
+        <% } %>
+      </div>
+      <% } %>
+    </div>
+    <% } %>
+
+    <!-- Insights automáticos -->
+    <div class="side-card">
+      <h3>Insights automáticos</h3>
+      <%
+        const insightsAuto = [];
+        if (parseFloat(s.avgSat) >= 7) insightsAuto.push({icon:'🌟', txt:`Satisfacción alta (${s.avgSat}/10) — vas muy bien`});
+        else if (parseFloat(s.avgSat) < 5) insightsAuto.push({icon:'⚠️', txt:`Satisfacción baja (${s.avgSat}/10) — analiza qué está pasando`});
+        if (s.racha >= 7) insightsAuto.push({icon:'🔥', txt:`${s.racha} días seguidos sin interrumpir — hábito sólido`});
+        else if (s.racha === 0) insightsAuto.push({icon:'📝', txt:`Hoy no has hecho reflexión todavía`});
+        if (s.diasAltos > s.diasBajos * 2) insightsAuto.push({icon:'📈', txt:`Mayoría de días positivos (${s.diasAltos} buenos vs ${s.diasBajos} difíciles)`});
+        if (parseFloat(s.avgEnf) >= 7) insightsAuto.push({icon:'🎯', txt:`Enfoque alto (${s.avgEnf}/10) — estás en zona de productividad`});
+        if (parseFloat(s.avgEnf) < 5) insightsAuto.push({icon:'🎯', txt:`Enfoque bajo (${s.avgEnf}/10) — elimina distracciones`});
+        if ((locals.patrones?.freno||[]).length > 0) insightsAuto.push({icon:'🚧', txt:`Principal freno: "${locals.patrones.freno[0].label}" (${locals.patrones.freno[0].count}x)`});
+        if ((locals.patrones?.energia_da||[]).length > 0) insightsAuto.push({icon:'⚡', txt:`Más energía con: "${locals.patrones.energia_da[0].label}"`});
+        if (s.pct30 >= 80) insightsAuto.push({icon:'✅', txt:`${s.pct30}% de constancia — excelente disciplina`});
+        else if (s.pct30 < 40) insightsAuto.push({icon:'📅', txt:`Solo ${s.pct30}% del mes — intenta escribir más seguido`});
+        if (insightsAuto.length === 0) insightsAuto.push({icon:'💬', txt:`Sigue registrando para ver patrones`});
+      %>
+      <% insightsAuto.slice(0,5).forEach(ins => { %>
+      <div class="insight-item">
+        <span class="insight-icon"><%= ins.icon %></span>
+        <span><%= ins.txt %></span>
+      </div>
+      <% }) %>
+    </div>
+
+    <!-- Promedios sidebar -->
+    <div class="side-card">
+      <h3>Promedios del período</h3>
+      <% [
+        {lbl:'Satisfacción', val:s.avgSat, max:10},
+        {lbl:'Enfoque',      val:s.avgEnf,  max:10},
+        {lbl:'Claridad',     val:s.avgClar, max:10},
+        {lbl:'Familia',      val:s.avgFam,  max:5},
+      ].forEach(m => {
+        const pct = Math.round(parseFloat(m.val) / m.max * 100);
+        const col = pct>=70?'fill-green':pct>=50?'fill-indigo':'fill-amber';
+      %>
+      <div class="pat-bar">
+        <div class="pat-bar-top">
+          <span style="font-size:.78rem"><%= m.lbl %></span>
+          <span style="font-size:.75rem;font-weight:600"><%= m.val %>/<%= m.max %></span>
+        </div>
+        <div class="pat-bar-track"><div class="pat-bar-fill <%= col %>" style="width:<%= pct %>%"></div></div>
+      </div>
+      <% }) %>
+    </div>
+
+    <!-- Últimas 7 reflexiones -->
+    <% const ultimas7 = (locals.reflexiones||[]).slice(-7).reverse(); %>
+    <% if (ultimas7.length > 0) { %>
+    <div class="side-card">
+      <h3>Últimas reflexiones</h3>
+      <% ultimas7.forEach(r => {
+        const sc = r.satisfaccion||0;
+        const col = sc>=8?'#22c55e':sc>=6?'#4ade80':sc>=4?'#f59e0b':'#ef4444';
+      %>
+      <div class="mini-ref">
+        <span class="dot" style="background:<%= col %>"></span>
+        <span class="fecha"><%= r.fecha.slice(5) %></span>
+        <span style="font-size:.75rem;color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= r.freno||r.logro||'—' %></span>
+        <span class="score" style="color:<%= col %>"><%= sc %></span>
+      </div>
+      <% }) %>
+    </div>
+    <% } %>
+
+  </div><!-- end sidebar -->
+</div><!-- end rm-body -->
+
+<% } %><!-- end if stats -->
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+<% if (s) { %>
+(function(){
+  const raw = <%- locals.chartData || '{}' %>;
+  if (!raw.labels || raw.labels.length === 0) return;
+
+  const ctx = document.getElementById('chartEvol');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: raw.labels,
+      datasets: [
+        { label:'Satisfacción', data:raw.satisfaccion, borderColor:'#6366f1', backgroundColor:'#6366f122', tension:.4, pointRadius:3, fill:true },
+        { label:'Enfoque',      data:raw.enfoque,      borderColor:'#22c55e', backgroundColor:'transparent', tension:.4, pointRadius:2 },
+        { label:'Claridad',     data:raw.claridad,     borderColor:'#f59e0b', backgroundColor:'transparent', tension:.4, pointRadius:2 },
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins:{
+        legend:{ labels:{ color:'#94a3b8', font:{size:11}, boxWidth:12 } },
+        tooltip:{ mode:'index', intersect:false }
+      },
+      scales:{
+        x:{ ticks:{ color:'#94a3b8', maxRotation:0, font:{size:10} }, grid:{ color:'#ffffff08' } },
+        y:{ min:0, max:10, ticks:{ color:'#94a3b8', font:{size:10} }, grid:{ color:'#ffffff08' } }
+      }
+    }
+  });
+})();
+<% } %>
+</script>
+
+<%- include('partials/footer') %>

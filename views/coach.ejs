@@ -1,0 +1,475 @@
+<%- include('partials/header') %>
+<%
+var _history   = locals.history   || [];
+var _checkin   = locals.checkin   || null;
+var _checkins7 = locals.checkins7 || [];
+var _bloquesHoy = locals.bloquesHoy || [];
+var _bloquesComp = locals.bloquesCompletados || [];
+var _malosLog  = locals.malosLog  || [];
+var _perfil    = locals.perfil    || null;
+var _habitStats = locals.habitStats || [];
+var _weeklyObjs = locals.weeklyObjs || [];
+%>
+<style>
+/* ── layout ── */
+.coach-wrap { display:grid; grid-template-columns:300px 1fr; gap:1.1rem; align-items:start; }
+@media(max-width:860px) { .coach-wrap { grid-template-columns:1fr; } }
+
+/* ── context panel ── */
+.ctx-section { margin-bottom:.8rem; }
+.ctx-label { font-size:.62rem; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:.09em; color:var(--text-muted); margin-bottom:.35rem; }
+.ctx-metric { display:flex; justify-content:space-between; align-items:center; padding:.28rem 0; border-bottom:1px solid var(--border); font-size:.8rem; }
+.ctx-metric:last-child { border-bottom:none; }
+.ctx-key { color:var(--text-muted); }
+.ctx-val { font-family:var(--font-mono); font-weight:700; }
+.trend-up   { color:var(--green); }
+.trend-down { color:var(--red); }
+
+/* ── chat ── */
+.chat-container { display:flex; flex-direction:column; gap:.75rem; }
+.chat-box { display:flex; flex-direction:column; gap:.7rem; max-height:520px; overflow-y:auto; padding:.1rem .1rem .6rem; }
+.chat-msg { display:flex; flex-direction:column; gap:.2rem; }
+.chat-msg.user { align-items:flex-end; }
+.chat-msg.coach { align-items:flex-start; }
+.bubble { padding:.65rem .9rem; border-radius:14px; max-width:85%; font-size:.86rem; line-height:1.65; }
+.bubble-user { background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
+.bubble-coach { background:var(--surface-2); border:1px solid var(--border); color:var(--text-soft); border-bottom-left-radius:4px; }
+.msg-time { font-size:.62rem; font-family:var(--font-mono); color:var(--text-muted); padding:0 .4rem; }
+
+/* coach sections inside bubble */
+.coach-head { font-family:var(--font-mono); font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--accent); font-weight:700; margin-top:.6rem; margin-bottom:.1rem; }
+.coach-head:first-child { margin-top:0; }
+
+/* ── input row ── */
+.chat-input-row { display:flex; gap:.5rem; align-items:flex-end; }
+.chat-input-wrap { flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; display:flex; align-items:flex-end; gap:.4rem; padding:.5rem .75rem; transition:border-color .15s; }
+.chat-input-wrap:focus-within { border-color:var(--accent); }
+.chat-input-wrap textarea { background:none; border:none; outline:none; color:var(--text); font-family:inherit; font-size:.86rem; flex:1; resize:none; max-height:120px; min-height:22px; line-height:1.5; }
+.chat-input-wrap textarea::placeholder { color:var(--text-muted); }
+.send-btn { width:36px; height:36px; background:var(--accent); border:none; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .15s; }
+.send-btn:disabled { opacity:.4; cursor:default; }
+.send-btn svg { width:16px; height:16px; stroke:#fff; }
+
+/* ── preset chips ── */
+.presets { display:flex; gap:.4rem; flex-wrap:wrap; }
+.preset-chip { font-size:.74rem; padding:.28rem .65rem; background:var(--surface-2); border:1px solid var(--border); border-radius:99px; cursor:pointer; color:var(--text-soft); transition:all .13s; white-space:nowrap; }
+.preset-chip:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); }
+.preset-chip.active { border-color:var(--accent); color:var(--accent); background:var(--accent-dim); opacity:.7; pointer-events:none; }
+
+/* ── typing indicator ── */
+.typing { display:none; align-items:center; gap:.35rem; padding:.55rem .9rem; background:var(--surface-2); border:1px solid var(--border); border-radius:14px; border-bottom-left-radius:4px; width:fit-content; }
+.typing.show { display:flex; }
+.typing span { width:6px; height:6px; background:var(--text-muted); border-radius:50%; animation:bounce .9s ease-in-out infinite; }
+.typing span:nth-child(2) { animation-delay:.2s; }
+.typing span:nth-child(3) { animation-delay:.4s; }
+@keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+/* ── history panel ── */
+.hist-entry { padding:.55rem .7rem; background:var(--surface-2); border-radius:8px; border-left:3px solid var(--border); cursor:pointer; transition:border-color .15s; margin-bottom:.4rem; }
+.hist-entry:hover { border-left-color:var(--accent); }
+.hist-entry-meta { display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:.65rem; color:var(--text-muted); margin-bottom:.25rem; }
+.hist-entry-preview { font-size:.78rem; color:var(--text-soft); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+/* ── empty ── */
+.coach-welcome { display:flex; flex-direction:column; align-items:center; gap:.75rem; padding:2rem 1rem; text-align:center; }
+.coach-welcome-icon { font-size:2.5rem; }
+.coach-welcome-title { font-size:1rem; font-weight:600; color:var(--text); }
+.coach-welcome-sub { font-size:.83rem; color:var(--text-muted); max-width:340px; line-height:1.6; }
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Coach IA</h1>
+    <p class="page-subtitle">Análisis personalizado · <% if(_perfil&&_perfil.nombre){%><%= _perfil.nombre %><% } else { %>tu día<% } %></p>
+  </div>
+  <% if (!_checkin) { %>
+  <a href="/checkin" class="btn btn-ghost" style="font-size:.8rem">+ Registrar chequeo</a>
+  <% } %>
+</div>
+
+<div class="coach-wrap">
+
+  <!-- ── PANEL IZQUIERDO: contexto ── -->
+  <div style="display:flex;flex-direction:column;gap:.85rem">
+
+    <div class="card">
+      <div class="card-header" style="margin-bottom:.65rem">
+        <h2 class="card-title">Contexto de Hoy</h2>
+        <span class="badge badge-muted"><%= today %></span>
+      </div>
+
+      <% if (_checkin) { %>
+      <div class="ctx-section">
+        <div class="ctx-label">Estado físico/mental</div>
+        <div class="ctx-metric"><span class="ctx-key">Energía</span><span class="ctx-val" style="color:<%= _checkin.energy>=7?'var(--green)':_checkin.energy>=4?'var(--accent)':'var(--red)' %>"><%= _checkin.energy %>/10</span></div>
+        <div class="ctx-metric"><span class="ctx-key">Ánimo</span><span class="ctx-val" style="color:<%= _checkin.mood>=7?'var(--green)':_checkin.mood>=4?'var(--accent)':'var(--red)' %>"><%= _checkin.mood %>/10</span></div>
+        <div class="ctx-metric"><span class="ctx-key">Claridad</span><span class="ctx-val"><%= _checkin.clarity %>/10</span></div>
+        <div class="ctx-metric"><span class="ctx-key">Ansiedad</span><span class="ctx-val" style="color:<%= _checkin.anxiety>=7?'var(--red)':_checkin.anxiety>=4?'var(--accent)':'var(--green)' %>"><%= _checkin.anxiety %>/10</span></div>
+        <div class="ctx-metric"><span class="ctx-key">Sueño</span><span class="ctx-val"><%= _checkin.sleep_hours %>h</span></div>
+      </div>
+      <div style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.75rem">
+        <span class="badge <%= _checkin.did_exercise?'badge-green':'badge-muted' %>"><%= _checkin.did_exercise?'✓':'✗' %> Ejercicio</span>
+        <span class="badge <%= _checkin.did_study?'badge-green':'badge-muted' %>"><%= _checkin.did_study?'✓':'✗' %> Estudio</span>
+        <span class="badge <%= _checkin.completed_main?'badge-green':'badge-muted' %>"><%= _checkin.completed_main?'✓':'✗' %> Bloque</span>
+      </div>
+      <% } else { %>
+      <div style="padding:.6rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:6px;font-size:.78rem;color:#f59e0b;margin-bottom:.75rem">
+        Sin chequeo de hoy — el análisis será parcial
+      </div>
+      <% } %>
+
+      <% if (_checkins7.length >= 2) { %>
+      <%
+        var _avg7 = function(f){ return (_checkins7.reduce(function(s,c){return s+c[f];},0)/_checkins7.length).toFixed(1); };
+        var _eTrend = _checkins7[_checkins7.length-1].energy - _checkins7[0].energy;
+        var _exDays = _checkins7.filter(function(c){return c.did_exercise;}).length;
+      %>
+      <div class="ctx-section">
+        <div class="ctx-label">Tendencias <%= _checkins7.length %>d</div>
+        <div class="ctx-metric"><span class="ctx-key">Energía media</span><span class="ctx-val <%= _eTrend>0?'trend-up':_eTrend<0?'trend-down':'' %>"><%= _avg7('energy') %> <%= _eTrend>0?'↑':_eTrend<0?'↓':'→' %></span></div>
+        <div class="ctx-metric"><span class="ctx-key">Ánimo medio</span><span class="ctx-val"><%= _avg7('mood') %></span></div>
+        <div class="ctx-metric"><span class="ctx-key">Sueño medio</span><span class="ctx-val"><%= _avg7('sleep_hours') %>h</span></div>
+        <div class="ctx-metric"><span class="ctx-key">Ejercicio</span><span class="ctx-val <%= _exDays>=4?'trend-up':_exDays<=1?'trend-down':'' %>"><%= _exDays %>/<%= _checkins7.length %>d</span></div>
+      </div>
+      <% } %>
+
+      <% if (_habitStats.length) { %>
+      <%
+        var _habComp = _habitStats.filter(function(h){return h.completadoHoy;}).length;
+        var _habPct  = Math.round(_habComp/_habitStats.length*100);
+      %>
+      <div class="ctx-section">
+        <div class="ctx-label">Hábitos hoy</div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.3rem">
+          <span style="color:var(--text-muted)"><%= _habComp %>/<%= _habitStats.length %> completados</span>
+          <span class="ctx-val <%= _habPct>=70?'trend-up':_habPct<40?'trend-down':'' %>"><%= _habPct %>%</span>
+        </div>
+        <div class="metric-bar"><div class="metric-fill" style="width:<%= _habPct %>%"></div></div>
+      </div>
+      <% } %>
+
+      <% if (_bloquesHoy.length) { %>
+      <%
+        var _rutPct = Math.round(_bloquesComp.length/_bloquesHoy.length*100);
+      %>
+      <div class="ctx-section">
+        <div class="ctx-label">Rutina hoy</div>
+        <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:.3rem">
+          <span style="color:var(--text-muted)"><%= _bloquesComp.length %>/<%= _bloquesHoy.length %> bloques</span>
+          <span class="ctx-val"><%= _rutPct %>%</span>
+        </div>
+        <div class="metric-bar"><div class="metric-fill" style="width:<%= _rutPct %>%"></div></div>
+      </div>
+      <% } %>
+
+    </div>
+
+    <!-- Historial compacto -->
+    <% if (_history.length) { %>
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Historial</h2><span class="badge badge-muted"><%= _history.length %></span></div>
+      <div>
+        <% _history.slice(0,5).forEach(function(h){ %>
+        <div class="hist-entry" onclick="loadHistory(this)" data-msg="<%= encodeURIComponent(h.mensaje) %>">
+          <div class="hist-entry-meta">
+            <span><%= h.fecha %></span>
+            <span><%= h.created_at.slice(11,16) %>h</span>
+          </div>
+          <div class="hist-entry-preview"><%= h.mensaje.slice(0,100) %>...</div>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+  </div>
+
+  <!-- ── PANEL DERECHO: chat ── -->
+  <div class="card" style="padding:1rem">
+
+    <!-- chat messages -->
+    <div class="chat-box" id="chat-box">
+
+      <!-- welcome / previous analysis -->
+      <% if (locals.coachMsg) { %>
+      <div class="chat-msg coach">
+        <div class="bubble bubble-coach" id="initial-bubble" data-raw="<%= encodeURIComponent(coachMsg) %>"></div>
+        <div class="msg-time">hoy · análisis completo</div>
+      </div>
+      <% } else { %>
+      <div class="coach-welcome">
+        <div class="coach-welcome-icon">🧠</div>
+        <div class="coach-welcome-title">Coach IA listo</div>
+        <div class="coach-welcome-sub">Usa "Analizar mi día" para un diagnóstico completo, o escribe cualquier pregunta específica sobre tu progreso.</div>
+      </div>
+      <% } %>
+
+      <div class="typing" id="typing-indicator">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <!-- preset chips -->
+    <%
+      var _tareasHoyChip = locals.tareasHoy || [];
+      var _tareasPend = _tareasHoyChip.filter(function(t){return !t.completado;}).length;
+      var _habPendNum = _habitStats.filter(function(h){return !h.completadoHoy;}).length;
+      var _objPend    = _weeklyObjs.filter(function(o){return o.status!=='completado';}).length;
+      var _rutPctN    = _bloquesHoy.length ? Math.round(_bloquesComp.length/_bloquesHoy.length*100) : null;
+    %>
+    <div class="presets" id="presets" style="margin-bottom:.65rem">
+      <span class="preset-chip" data-msg="analiza mi dia" onclick="chipClick(this)">
+        📊 Analizar día
+      </span>
+      <span class="preset-chip" data-msg="qué tengo en la agenda hoy" onclick="chipClick(this)">
+        📋 Agenda<% if(_tareasPend>0){%> · <strong><%= _tareasPend %></strong> pend.<% } %>
+      </span>
+      <span class="preset-chip" data-msg="cómo van mis hábitos" onclick="chipClick(this)">
+        🔄 Hábitos<% if(_habPendNum>0){%> · <strong><%= _habPendNum %></strong> sin hacer<% } %>
+      </span>
+      <span class="preset-chip" data-msg="cuáles son mis objetivos de la semana" onclick="chipClick(this)">
+        🎯 Objetivos<% if(_objPend>0){%> · <strong><%= _objPend %></strong> pend.<% } %>
+      </span>
+      <span class="preset-chip" data-msg="qué debo priorizar ahora mismo" onclick="chipClick(this)">
+        ⚡ Priorizar
+      </span>
+      <span class="preset-chip" data-msg="dame una acción concreta para mejorar hoy" onclick="chipClick(this)">
+        🎯 Acción concreta
+      </span>
+      <span class="preset-chip" data-msg="cómo está mi rutina hoy" onclick="chipClick(this)">
+        🕐 Rutina<% if(_rutPctN!==null){%> · <%= _rutPctN %>%<% } %>
+      </span>
+      <span class="preset-chip" data-msg="qué patrón ves en mis datos de la semana" onclick="chipClick(this)">
+        🔍 Tendencias
+      </span>
+      <span class="preset-chip" data-msg="cómo estuvo mi reflexión de ayer" onclick="chipClick(this)">
+        📓 Reflexión
+      </span>
+      <span class="preset-chip" data-msg="qué hay próximamente en mi agenda" onclick="chipClick(this)">
+        📅 Próximas tareas
+      </span>
+    </div>
+
+    <!-- input -->
+    <div class="chat-input-row">
+      <div class="chat-input-wrap">
+        <textarea id="chat-input" rows="1" placeholder="Escribe una pregunta al Coach..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      </div>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Enviar">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var COACH_TODAY = '<%= today %>';
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function chipClick(el) {
+  var msg = el.getAttribute('data-msg');
+  if (!msg) return;
+  // feedback visual en el chip
+  document.querySelectorAll('.preset-chip').forEach(function(c) { c.classList.remove('active'); });
+  el.classList.add('active');
+  // enviar directo sin pasar por el input
+  sendDirect(msg, el.innerText.trim());
+}
+
+function sendPreset(text) {
+  sendDirect(text, text);
+}
+
+function sendDirect(apiMsg, displayMsg) {
+  var welcome = document.querySelector('.coach-welcome');
+  if (welcome) welcome.style.display = 'none';
+  appendMsg('user', displayMsg);
+  setLoading(true);
+  fetch('/coach/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ mensaje: apiMsg })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    setLoading(false);
+    document.querySelectorAll('.preset-chip').forEach(function(c) { c.classList.remove('active'); });
+    appendMsg('coach', data.respuesta || 'Sin respuesta.');
+  })
+  .catch(function() {
+    setLoading(false);
+    document.querySelectorAll('.preset-chip').forEach(function(c) { c.classList.remove('active'); });
+    appendMsg('coach', 'Error de conexión.');
+  });
+}
+
+// ── TAG RENDERERS ────────────────────────────────────────────
+var COLORS = {
+  green:  { bg:'rgba(34,197,94,.15)',  border:'rgba(34,197,94,.4)',  text:'#22c55e' },
+  amber:  { bg:'rgba(245,158,11,.15)', border:'rgba(245,158,11,.4)', text:'#f59e0b' },
+  red:    { bg:'rgba(239,68,68,.15)',  border:'rgba(239,68,68,.4)',  text:'#ef4444' },
+  accent: { bg:'rgba(99,102,241,.15)', border:'rgba(99,102,241,.4)', text:'#6366f1' },
+  muted:  { bg:'rgba(255,255,255,.06)',border:'rgba(255,255,255,.12)',text:'#9ca3af' },
+};
+
+function renderTags(text) {
+  // [[M:label:value:color]] → inline metric pill
+  text = text.replace(/\[\[M:(.*?):(.*?):(.*?)\]\]/g, function(_, label, value, color) {
+    var c = COLORS[color] || COLORS.muted;
+    var lbl = label ? '<span style="font-size:.6rem;opacity:.7;margin-right:.2rem">' + esc(label) + '</span>' : '';
+    return '<span style="display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:.75rem;font-weight:700;padding:.12rem .45rem;border-radius:99px;background:' + c.bg + ';border:1px solid ' + c.border + ';color:' + c.text + ';margin:.1rem .15rem;vertical-align:middle">' + lbl + esc(value) + '</span>';
+  });
+
+  // [[BAR:label:pct:color]] → progress bar
+  text = text.replace(/\[\[BAR:(.*?):(.*?):(.*?)\]\]/g, function(_, label, pct, color) {
+    var c = COLORS[color] || COLORS.accent;
+    pct = Math.min(100, Math.max(0, parseInt(pct) || 0));
+    return '<div style="margin:.35rem 0">' +
+      '<div style="display:flex;justify-content:space-between;font-size:.7rem;margin-bottom:.2rem;color:var(--text-muted)">' +
+        '<span>' + esc(label) + '</span>' +
+        '<span style="font-family:var(--font-mono);font-weight:700;color:' + c.text + '">' + pct + '%</span>' +
+      '</div>' +
+      '<div style="height:6px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden">' +
+        '<div style="height:100%;width:' + pct + '%;background:' + c.text + ';border-radius:4px;transition:width .4s"></div>' +
+      '</div>' +
+    '</div>';
+  });
+
+  // [[RX:text]] → prescripción (azul/accent)
+  text = text.replace(/\[\[RX:(.*?)\]\]/g, function(_, msg) {
+    return '<div style="background:rgba(99,102,241,.1);border-left:3px solid #6366f1;border-radius:0 6px 6px 0;padding:.45rem .7rem;margin:.35rem 0;font-size:.82rem;color:var(--text)">' +
+      '<span style="font-family:var(--font-mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:#6366f1;display:block;margin-bottom:.15rem">Prescripción</span>' +
+      esc(msg) + '</div>';
+  });
+
+  // [[ALERT:text]] → alerta (rojo/amber)
+  text = text.replace(/\[\[ALERT:(.*?)\]\]/g, function(_, msg) {
+    return '<div style="background:rgba(245,158,11,.1);border-left:3px solid #f59e0b;border-radius:0 6px 6px 0;padding:.45rem .7rem;margin:.35rem 0;font-size:.82rem;color:var(--text)">' +
+      '<span style="font-family:var(--font-mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:#f59e0b;display:block;margin-bottom:.15rem">⚠ Atención</span>' +
+      esc(msg) + '</div>';
+  });
+
+  // [[OK:text]] → positivo (verde)
+  text = text.replace(/\[\[OK:(.*?)\]\]/g, function(_, msg) {
+    return '<div style="background:rgba(34,197,94,.1);border-left:3px solid #22c55e;border-radius:0 6px 6px 0;padding:.45rem .7rem;margin:.35rem 0;font-size:.82rem;color:var(--text)">' +
+      '<span style="font-family:var(--font-mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.08em;color:#22c55e;display:block;margin-bottom:.15rem">✓ Punto fuerte</span>' +
+      esc(msg) + '</div>';
+  });
+
+  return text;
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatCoachMsg(text) {
+  var lines = text.split('\n');
+  var html = '';
+  lines.forEach(function(line) {
+    var t = line.trim();
+    if (!t) { html += '<div style="height:.4rem"></div>'; return; }
+    // Section headers (all caps)
+    if (/^[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{3,}$/.test(t)) {
+      html += '<div class="coach-head">' + esc(t) + '</div>';
+    } else {
+      // Render metric tags within the line
+      var rendered = renderTags(t);
+      html += '<div style="margin:.15rem 0;line-height:1.6">' + rendered + '</div>';
+    }
+  });
+  return html || '<p style="margin:0">' + esc(text) + '</p>';
+}
+
+function appendMsg(role, text) {
+  var box = document.getElementById('chat-box');
+  var typing = document.getElementById('typing-indicator');
+  var div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  var now = new Date();
+  var timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+  if (role === 'user') {
+    div.innerHTML = '<div class="bubble bubble-user">' + text.replace(/</g,'&lt;') + '</div><div class="msg-time">' + timeStr + '</div>';
+  } else {
+    div.innerHTML = '<div class="bubble bubble-coach">' + formatCoachMsg(text) + '</div><div class="msg-time">' + timeStr + ' · coach ia</div>';
+  }
+  box.insertBefore(div, typing);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+function setLoading(on) {
+  var btn   = document.getElementById('send-btn');
+  var inp   = document.getElementById('chat-input');
+  var typed = document.getElementById('typing-indicator');
+  btn.disabled = on;
+  inp.disabled = on;
+  typed.classList.toggle('show', on);
+  if (on) {
+    document.getElementById('chat-box').scrollTop = 9999;
+  }
+}
+
+function sendMessage() {
+  var inp = document.getElementById('chat-input');
+  var text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  inp.style.height = 'auto';
+
+  // Hide welcome state if present
+  var welcome = document.querySelector('.coach-welcome');
+  if (welcome) welcome.style.display = 'none';
+
+  appendMsg('user', text);
+  setLoading(true);
+
+  fetch('/coach/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify({ mensaje: text })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    setLoading(false);
+    if (data.respuesta) {
+      appendMsg('coach', data.respuesta);
+    } else {
+      appendMsg('coach', 'Error al procesar la respuesta.');
+    }
+  })
+  .catch(function(err) {
+    setLoading(false);
+    appendMsg('coach', 'Error de conexión. Verifica tu API key en .env (OPENAI_API_KEY).');
+  });
+}
+
+function loadHistory(el) {
+  var msg = decodeURIComponent(el.dataset.msg);
+  var welcome = document.querySelector('.coach-welcome');
+  if (welcome) welcome.style.display = 'none';
+  appendMsg('coach', msg);
+  document.getElementById('chat-box').scrollTop = 9999;
+}
+
+// Render initial bubble if present
+var initBubble = document.getElementById('initial-bubble');
+if (initBubble && initBubble.dataset.raw) {
+  initBubble.innerHTML = formatCoachMsg(decodeURIComponent(initBubble.dataset.raw));
+}
+
+// Focus input on load
+document.getElementById('chat-input').focus();
+</script>
+
+<%- include('partials/footer') %>

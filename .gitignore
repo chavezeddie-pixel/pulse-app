@@ -1,0 +1,7 @@
+node_modules/
+data/*.db
+data/demo_*
+.env
+logs/
+.DS_Store
+.claude/

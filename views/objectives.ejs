@@ -1,0 +1,530 @@
+<%- include('partials/header') %>
+
+<style>
+/* ═══════════════════════════════
+   OBJETIVOS REDESIGN
+═══════════════════════════════ */
+
+/* Header */
+.obj-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; flex-wrap:wrap; gap:.75rem; }
+
+/* Summary strip */
+.obj-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:.75rem; margin-bottom:1.25rem; }
+.obj-sum-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:.85rem 1rem; }
+.obj-sum-card .sv { font-size:1.8rem; font-weight:700; line-height:1; }
+.obj-sum-card .sl { font-size:.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-top:.2rem; }
+
+/* Week countdown */
+.week-bar-wrap { margin-bottom:1.25rem; }
+.week-bar-bg   { height:6px; background:var(--surface); border-radius:99px; overflow:hidden; margin:.4rem 0; }
+.week-bar-fill { height:100%; border-radius:99px; background:var(--accent); transition:width .4s; }
+.week-days { display:flex; gap:3px; margin-top:.25rem; }
+.week-day-dot { flex:1; height:14px; border-radius:4px; }
+
+/* Main layout */
+.obj-layout { display:grid; grid-template-columns:1fr 1fr; gap:1rem; align-items:start; }
+@media(max-width:760px) { .obj-layout { grid-template-columns:1fr; } }
+
+/* Section header */
+.sec-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:.75rem; }
+.sec-ttl { font-size:.92rem; font-weight:700; display:flex; align-items:center; gap:.4rem; }
+.sec-count { font-size:.68rem; background:var(--surface); border:1px solid var(--border); border-radius:99px; padding:.1rem .45rem; color:var(--text-muted); }
+
+/* Obj cards */
+.obj-card {
+  background:var(--card); border:1px solid var(--border); border-radius:14px;
+  padding:1rem; margin-bottom:.65rem; transition:border-color .2s;
+  border-left:4px solid var(--border); display:flex; gap:.75rem; align-items:flex-start;
+}
+.obj-card:hover { border-color:var(--border-2); }
+.obj-card.done   { opacity:.55; }
+.obj-card.cancelled { opacity:.4; }
+.obj-card.prio-alta  { border-left-color:#ef4444; }
+.obj-card.prio-media { border-left-color:#f59e0b; }
+.obj-card.prio-baja  { border-left-color:#6366f1; }
+.obj-card.status-completado { border-left-color:#22c55e; }
+
+/* Mini ring per card */
+.mini-ring { flex-shrink:0; position:relative; width:44px; height:44px; }
+.mini-ring svg { transform:rotate(-90deg); }
+.mini-ring-txt { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:.58rem; font-weight:700; font-family:var(--font-mono); }
+
+/* Card body */
+.obj-body { flex:1; min-width:0; }
+.obj-name { font-size:.88rem; font-weight:600; line-height:1.3; margin-bottom:.3rem; }
+.obj-name.done { text-decoration:line-through; }
+.obj-tags { display:flex; align-items:center; gap:.3rem; flex-wrap:wrap; margin-bottom:.5rem; }
+.obj-tag { font-size:.62rem; padding:.1rem .35rem; border-radius:99px; border:1px solid var(--border); background:var(--surface); }
+.obj-deadline { font-size:.65rem; color:var(--text-muted); }
+.obj-deadline.vencido { color:#ef4444; }
+
+/* Status btn */
+.st-btn { display:inline-flex; align-items:center; gap:.25rem; font-size:.7rem; font-weight:600;
+  padding:.2rem .5rem; border-radius:99px; border:none; cursor:pointer; transition:all .15s; }
+.st-pendiente  { background:#6366f122; color:#6366f1; }
+.st-en-proceso { background:#f59e0b22; color:#f59e0b; }
+.st-completado { background:#22c55e22; color:#22c55e; }
+.st-cancelado  { background:#ef444422; color:#ef4444; }
+.st-btn:hover  { filter:brightness(1.15); }
+
+/* Progress bar */
+.obj-prog-wrap { height:5px; background:var(--surface); border-radius:99px; overflow:hidden; margin-top:.5rem; }
+.obj-prog-fill { height:100%; border-radius:99px; transition:width .35s; }
+
+/* Pct controls */
+.pct-row { display:flex; align-items:center; gap:.4rem; margin-top:.4rem; }
+.pct-btn { width:22px; height:22px; border-radius:6px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text); font-size:1rem; font-weight:700;
+  cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; }
+.pct-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+
+/* Delete */
+.obj-del { background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:.8rem; padding:.15rem .3rem; border-radius:5px; flex-shrink:0; align-self:flex-start; }
+.obj-del:hover { color:#ef4444; background:#ef444411; }
+
+/* Empty */
+.obj-empty { text-align:center; padding:2rem 1rem; background:var(--card); border:1px dashed var(--border); border-radius:14px; }
+.obj-empty .ei { font-size:2.5rem; margin-bottom:.5rem; }
+
+/* Days left pill */
+.days-left { font-size:.62rem; padding:.1rem .35rem; border-radius:99px; font-family:var(--font-mono); font-weight:700; }
+.dl-ok      { background:#22c55e22; color:#22c55e; }
+.dl-warning { background:#f59e0b22; color:#f59e0b; }
+.dl-danger  { background:#ef444422; color:#ef4444; }
+</style>
+
+<%
+var wTotal    = weeklyObjs.length;
+var wDone     = weeklyObjs.filter(function(o){return o.status==='completado'}).length;
+var wInProg   = weeklyObjs.filter(function(o){return o.status==='en proceso'}).length;
+var wPending  = weeklyObjs.filter(function(o){return o.status==='pendiente'}).length;
+var wPct      = wTotal ? Math.round(wDone/wTotal*100) : 0;
+
+var mTotal    = monthlyObjs.length;
+var mDone     = monthlyObjs.filter(function(o){return o.status==='completado'}).length;
+var mAvgPct   = mTotal ? Math.round(monthlyObjs.reduce(function(s,o){return s+(o.percentage||0)},0)/mTotal) : 0;
+var mInProg   = monthlyObjs.filter(function(o){return o.status==='en proceso'}).length;
+
+var today2    = new Date().toISOString().split('T')[0];
+var todayD    = new Date();
+var dayOfWeek = todayD.getDay(); // 0=dom
+var daysLeftWeek = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+
+var wCirc = 2 * Math.PI * 18;
+var mCirc = 2 * Math.PI * 18;
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  var d = new Date(dateStr+'T00:00:00');
+  var t = new Date(today2+'T00:00:00');
+  return Math.round((d-t)/86400000);
+}
+%>
+
+<!-- HEADER -->
+<div class="obj-hdr">
+  <div>
+    <h1 class="page-title">🎯 Objetivos</h1>
+    <p class="page-subtitle">Semana desde <strong><%= weekStart %></strong> · Mes <strong><%= monthYear %></strong></p>
+  </div>
+  <div style="display:flex;gap:.5rem">
+    <button class="btn btn-ghost btn-sm" onclick="openModal('modal-new-weekly')">+ Semanal</button>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-monthly')">+ Mensual</button>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="obj-summary">
+  <!-- Semana ring -->
+  <div class="obj-sum-card" style="display:flex;align-items:center;gap:.75rem">
+    <div class="mini-ring" style="width:52px;height:52px">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="20" fill="none" stroke="var(--surface)" stroke-width="5"/>
+        <circle cx="26" cy="26" r="20" fill="none" stroke="#22c55e" stroke-width="5"
+          stroke-dasharray="<%= wCirc %>" stroke-dashoffset="<%= wCirc - (wCirc*wPct/100) %>"
+          stroke-linecap="round"/>
+      </svg>
+      <div class="mini-ring-txt" style="color:#22c55e"><%= wPct %>%</div>
+    </div>
+    <div>
+      <div class="sv" style="color:#22c55e"><%= wDone %>/<%= wTotal %></div>
+      <div class="sl">Esta semana</div>
+      <div style="font-size:.62rem;color:var(--text-muted);margin-top:.1rem"><%= daysLeftWeek %> días restantes</div>
+    </div>
+  </div>
+
+  <!-- Mes ring -->
+  <div class="obj-sum-card" style="display:flex;align-items:center;gap:.75rem">
+    <div class="mini-ring" style="width:52px;height:52px">
+      <svg width="52" height="52" viewBox="0 0 52 52">
+        <circle cx="26" cy="26" r="20" fill="none" stroke="var(--surface)" stroke-width="5"/>
+        <circle cx="26" cy="26" r="20" fill="none" stroke="#6366f1" stroke-width="5"
+          stroke-dasharray="<%= mCirc %>" stroke-dashoffset="<%= mCirc - (mCirc*mAvgPct/100) %>"
+          stroke-linecap="round"/>
+      </svg>
+      <div class="mini-ring-txt" style="color:#6366f1"><%= mAvgPct %>%</div>
+    </div>
+    <div>
+      <div class="sv" style="color:#6366f1"><%= mDone %>/<%= mTotal %></div>
+      <div class="sl">Este mes</div>
+    </div>
+  </div>
+
+  <div class="obj-sum-card">
+    <div class="sv" style="color:#f59e0b"><%= wInProg + mInProg %></div>
+    <div class="sl">En proceso</div>
+  </div>
+
+  <div class="obj-sum-card">
+    <div class="sv" style="color:#ef4444"><%= wPending + monthlyObjs.filter(function(o){return o.status==='pendiente'}).length %></div>
+    <div class="sl">Pendientes</div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="obj-layout">
+
+  <!-- ── SEMANALES ── -->
+  <div>
+    <div class="sec-hdr">
+      <div class="sec-ttl">📅 Esta semana <span class="sec-count"><%= wDone %>/<%= wTotal %></span></div>
+      <button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="openModal('modal-new-weekly')">+ Agregar</button>
+    </div>
+
+    <% if (weeklyObjs.length === 0) { %>
+    <div class="obj-empty">
+      <div class="ei">📅</div>
+      <p style="font-size:.85rem;font-weight:600;margin-bottom:.3rem">Sin objetivos esta semana</p>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Define lo que quieres lograr esta semana.</p>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-weekly')">+ Crear objetivo</button>
+    </div>
+    <% } %>
+
+    <% weeklyObjs.forEach(function(obj) {
+      var prog      = obj.status==='completado' ? 100 : (obj.progress||0);
+      var stCls     = obj.status==='en proceso' ? 'st-en-proceso' : 'st-'+obj.status;
+      var stEmoji   = obj.status==='completado'?'✅':obj.status==='en proceso'?'⚡':obj.status==='cancelado'?'✕':'⏳';
+      var cardPrio  = 'prio-'+(obj.priority||'media');
+      var cardSt    = obj.status==='completado'?'status-completado':'';
+      var cardDone  = obj.status==='completado'?'done':obj.status==='cancelado'?'cancelled':'';
+      var ringColor = prog>=100?'#22c55e':prog>=50?'#f59e0b':'#6366f1';
+      var ringOffset= wCirc - (wCirc * prog / 100);
+      var dlDays    = daysUntil(obj.deadline);
+      var dlCls     = dlDays===null?'':dlDays<0?'dl-danger':dlDays<=2?'dl-warning':'dl-ok';
+      var dlLbl     = dlDays===null?'':dlDays<0?'Vencido':dlDays===0?'Hoy':dlDays===1?'Mañana':'En '+dlDays+'d';
+    %>
+    <div class="obj-card <%= cardPrio %> <%= cardSt %> <%= cardDone %>" id="wobj-<%= obj.id %>">
+
+      <!-- Mini ring -->
+      <div class="mini-ring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--surface)" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="<%= ringColor %>" stroke-width="4"
+            stroke-dasharray="<%= wCirc %>" stroke-dashoffset="<%= ringOffset %>"
+            stroke-linecap="round" id="wring-<%= obj.id %>"/>
+        </svg>
+        <div class="mini-ring-txt" style="color:<%= ringColor %>" id="wring-txt-<%= obj.id %>"><%= prog %>%</div>
+      </div>
+
+      <div class="obj-body">
+        <div class="obj-name <%= obj.status==='completado'?'done':'' %>"><%= obj.name %></div>
+        <div class="obj-tags">
+          <span class="obj-tag"><%= obj.area %></span>
+          <span class="obj-tag prio-badge prio-<%= obj.priority||'media' %>" style="background:<%= (obj.priority||'media')==='alta'?'#ef444422':(obj.priority||'media')==='media'?'#f59e0b22':'#6366f122' %>;color:<%= (obj.priority||'media')==='alta'?'#ef4444':(obj.priority||'media')==='media'?'#f59e0b':'#6366f1' %>;border:none"><%= obj.priority||'media' %></span>
+          <% if (dlLbl) { %><span class="days-left <%= dlCls %>"><%= dlLbl %></span><% } %>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem">
+          <button class="st-btn <%= stCls %>" onclick="cycleWeekly(<%= obj.id %>,this)" data-status="<%= obj.status %>">
+            <%= stEmoji %> <%= obj.status %>
+          </button>
+          <span style="font-size:.7rem;font-family:var(--font-mono);color:var(--text-muted)" id="wpct-lbl-<%= obj.id %>"><%= prog %>%</span>
+        </div>
+        <div class="obj-prog-wrap">
+          <div class="obj-prog-fill" id="wbar-<%= obj.id %>"
+            style="width:<%= prog %>%;background:<%= ringColor %>"></div>
+        </div>
+      </div>
+
+      <button class="obj-del" onclick="deleteObj('weekly',<%= obj.id %>)">✕</button>
+    </div>
+    <% }); %>
+  </div>
+
+  <!-- ── MENSUALES ── -->
+  <div>
+    <div class="sec-hdr">
+      <div class="sec-ttl">🗓️ Este mes <span class="sec-count"><%= mDone %>/<%= mTotal %></span></div>
+      <button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="openModal('modal-new-monthly')">+ Agregar</button>
+    </div>
+
+    <% if (monthlyObjs.length === 0) { %>
+    <div class="obj-empty">
+      <div class="ei">🗓️</div>
+      <p style="font-size:.85rem;font-weight:600;margin-bottom:.3rem">Sin objetivos este mes</p>
+      <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Define tus metas grandes del mes.</p>
+      <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-monthly')">+ Crear meta</button>
+    </div>
+    <% } %>
+
+    <% monthlyObjs.forEach(function(obj) {
+      var pct      = obj.percentage || 0;
+      var stCls    = obj.status==='en proceso' ? 'st-en-proceso' : 'st-'+obj.status;
+      var stEmoji  = obj.status==='completado'?'✅':obj.status==='en proceso'?'⚡':obj.status==='cancelado'?'✕':'⏳';
+      var cardDone = obj.status==='completado'?'done':obj.status==='cancelado'?'cancelled':'';
+      var stCard   = obj.status==='completado'?'status-completado':'';
+      var ringColor= pct>=100?'#22c55e':pct>=70?'#22c55e':pct>=30?'#f59e0b':'#6366f1';
+      var ringOff  = mCirc - (mCirc * pct / 100);
+      var dlDays   = daysUntil(obj.target_date);
+      var dlCls    = dlDays===null?'':dlDays<0?'dl-danger':dlDays<=7?'dl-warning':'dl-ok';
+      var dlLbl    = dlDays===null?'':dlDays<0?'Vencido':dlDays===0?'Hoy':dlDays===1?'Mañana':'En '+dlDays+'d';
+    %>
+    <div class="obj-card <%= stCard %> <%= cardDone %>" id="mobj-<%= obj.id %>">
+
+      <!-- Mini ring -->
+      <div class="mini-ring">
+        <svg width="44" height="44" viewBox="0 0 44 44">
+          <circle cx="22" cy="22" r="18" fill="none" stroke="var(--surface)" stroke-width="4"/>
+          <circle cx="22" cy="22" r="18" fill="none" stroke="<%= ringColor %>" stroke-width="4"
+            stroke-dasharray="<%= mCirc %>" stroke-dashoffset="<%= ringOff %>"
+            stroke-linecap="round" id="mring-<%= obj.id %>"/>
+        </svg>
+        <div class="mini-ring-txt" style="color:<%= ringColor %>" id="mring-txt-<%= obj.id %>"><%= pct %>%</div>
+      </div>
+
+      <div class="obj-body">
+        <div class="obj-name <%= obj.status==='completado'?'done':'' %>"><%= obj.name %></div>
+        <% if (obj.description) { %>
+        <div style="font-size:.74rem;color:var(--text-muted);margin-bottom:.3rem;line-height:1.4"><%= obj.description %></div>
+        <% } %>
+        <div class="obj-tags">
+          <span class="obj-tag"><%= obj.category %></span>
+          <% if (dlLbl) { %><span class="days-left <%= dlCls %>"><%= dlLbl %></span><% } %>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.3rem;margin-bottom:.3rem">
+          <button class="st-btn <%= stCls %>" onclick="cycleMonthly(<%= obj.id %>,this)" data-status="<%= obj.status %>">
+            <%= stEmoji %> <%= obj.status %>
+          </button>
+          <div class="pct-row">
+            <button class="pct-btn" onclick="changePct(<%= obj.id %>,-10)">−</button>
+            <span style="font-family:var(--font-mono);font-size:.85rem;font-weight:700;min-width:36px;text-align:center" id="mpct-<%= obj.id %>"><%= pct %>%</span>
+            <button class="pct-btn" onclick="changePct(<%= obj.id %>,10)">+</button>
+          </div>
+        </div>
+        <div class="obj-prog-wrap">
+          <div class="obj-prog-fill" id="mbar-<%= obj.id %>"
+            style="width:<%= pct %>%;background:<%= ringColor %>"></div>
+        </div>
+      </div>
+
+      <button class="obj-del" onclick="deleteObj('monthly',<%= obj.id %>)">✕</button>
+    </div>
+    <% }); %>
+  </div>
+
+</div>
+
+<!-- ── MODAL SEMANAL ── -->
+<div class="modal-overlay" id="modal-new-weekly" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>📅 Objetivo Semanal</h3>
+      <button onclick="closeModal('modal-new-weekly')" class="modal-close">✕</button>
+    </div>
+    <form action="/objectives/weekly" method="POST" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">Objetivo</label>
+        <input type="text" name="name" class="input" placeholder="Ej: Entrenar 3 veces esta semana" required autofocus />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-field">
+          <label class="field-label">Área</label>
+          <select name="area" class="input">
+            <option value="ejercicio">💪 Ejercicio</option>
+            <option value="estudio">📚 Estudio</option>
+            <option value="trabajo">💼 Trabajo</option>
+            <option value="familia">👨‍👩‍👧 Familia</option>
+            <option value="finanzas">💰 Finanzas</option>
+            <option value="salud mental">🧠 Salud mental</option>
+            <option value="personal" selected>⭐ Personal</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Prioridad</label>
+          <select name="priority" class="input">
+            <option value="alta">🔴 Alta</option>
+            <option value="media" selected>🟡 Media</option>
+            <option value="baja">🔵 Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Fecha límite (opcional)</label>
+        <input type="date" name="deadline" class="input" />
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-new-weekly')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear objetivo</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── MODAL MENSUAL ── -->
+<div class="modal-overlay" id="modal-new-monthly" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>🗓️ Meta del Mes</h3>
+      <button onclick="closeModal('modal-new-monthly')" class="modal-close">✕</button>
+    </div>
+    <form action="/objectives/monthly" method="POST" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">Meta</label>
+        <input type="text" name="name" class="input" placeholder="Ej: Cerrar 5 cotizaciones" required autofocus />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Descripción (opcional)</label>
+        <textarea name="description" class="textarea" rows="2" placeholder="Detalle o contexto..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-field">
+          <label class="field-label">Categoría</label>
+          <select name="category" class="input">
+            <option value="personal">⭐ Personal</option>
+            <option value="profesional">💼 Profesional</option>
+            <option value="salud">🏃 Salud</option>
+            <option value="finanzas">💰 Finanzas</option>
+            <option value="familia">👨‍👩‍👧 Familia</option>
+            <option value="aprendizaje">📚 Aprendizaje</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Fecha objetivo</label>
+          <input type="date" name="target_date" class="input" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-new-monthly')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear meta</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openModal(id)      { document.getElementById(id).classList.add('active'); }
+function closeModal(id)     { document.getElementById(id).classList.remove('active'); }
+function closeOnOverlay(e,id) { if(e.target===e.currentTarget) closeModal(id); }
+function toggleModal(id)    { document.getElementById(id).classList.toggle('active'); }
+
+var STATUSES    = ['pendiente','en proceso','completado','cancelado'];
+var ST_EMOJI    = { pendiente:'⏳','en proceso':'⚡',completado:'✅',cancelado:'✕' };
+var ST_CLS      = { pendiente:'st-pendiente','en proceso':'st-en-proceso',completado:'st-completado',cancelado:'st-cancelado' };
+var W_CIRC      = <%= wCirc %>;
+var M_CIRC      = <%= mCirc %>;
+
+// ── Color para % ──
+function ringColor(pct) {
+  return pct >= 100 ? '#22c55e' : pct >= 50 ? '#f59e0b' : '#6366f1';
+}
+
+// ── Cycle semanal ──
+function cycleWeekly(id, btn) {
+  var cur  = btn.dataset.status;
+  var next = STATUSES[(STATUSES.indexOf(cur)+1) % STATUSES.length];
+  var prog = next==='completado'?100:next==='pendiente'?0:50;
+
+  progressStart();
+  fetch('/objectives/weekly/'+id+'/status', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-requested-with':'XMLHttpRequest'},
+    body: JSON.stringify({ status:next, progress:prog })
+  }).then(function(r){return r.json();}).then(function(d) {
+    progressDone();
+    if (!d.ok) return;
+    btn.dataset.status = next;
+    btn.className = 'st-btn ' + ST_CLS[next];
+    btn.innerHTML = ST_EMOJI[next] + ' ' + next;
+
+    var col = ringColor(prog);
+    var ring = document.getElementById('wring-'+id);
+    if (ring) { ring.setAttribute('stroke-dashoffset', W_CIRC - (W_CIRC*prog/100)); ring.setAttribute('stroke', col); }
+    var rtxt = document.getElementById('wring-txt-'+id);
+    if (rtxt) { rtxt.textContent = prog+'%'; rtxt.style.color = col; }
+    var bar  = document.getElementById('wbar-'+id);
+    if (bar)  { bar.style.width = prog+'%'; bar.style.background = col; }
+    var plbl = document.getElementById('wpct-lbl-'+id);
+    if (plbl) plbl.textContent = prog+'%';
+
+    var card = document.getElementById('wobj-'+id);
+    if (card) {
+      card.classList.toggle('done', next==='completado');
+      card.classList.toggle('cancelled', next==='cancelado');
+      card.classList.toggle('status-completado', next==='completado');
+    }
+    showToast('Objetivo actualizado', 'success', 1800);
+  });
+}
+
+// ── Monthly pct map ──
+var mPcts = {};
+<% monthlyObjs.forEach(function(o) { %>
+mPcts[<%= o.id %>] = { pct:<%= o.percentage||0 %>, status:'<%= o.status %>' };
+<% }); %>
+
+function changePct(id, delta) {
+  var cur    = mPcts[id] || { pct:0, status:'pendiente' };
+  var newPct = Math.max(0, Math.min(100, cur.pct + delta));
+  var newSt  = newPct>=100?'completado':newPct>0?'en proceso':cur.status==='completado'?'en proceso':cur.status;
+  mPcts[id]  = { pct:newPct, status:newSt };
+  _saveMontly(id, newPct, newSt);
+}
+
+function cycleMonthly(id, btn) {
+  var cur   = btn.dataset.status;
+  var next  = STATUSES[(STATUSES.indexOf(cur)+1) % STATUSES.length];
+  var curPct= mPcts[id]?.pct || 0;
+  var newPct= next==='completado'?100:curPct;
+  mPcts[id] = { pct:newPct, status:next };
+  _saveMontly(id, newPct, next);
+}
+
+function _saveMontly(id, pct, status) {
+  progressStart();
+  fetch('/objectives/monthly/'+id+'/update', {
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-requested-with':'XMLHttpRequest'},
+    body: JSON.stringify({ percentage:pct, status:status })
+  }).then(function(r){return r.json();}).then(function(d) {
+    progressDone();
+    if (!d.ok) return;
+    var col  = ringColor(pct);
+    var ring = document.getElementById('mring-'+id);
+    if (ring) { ring.setAttribute('stroke-dashoffset', M_CIRC - (M_CIRC*pct/100)); ring.setAttribute('stroke', col); }
+    var rtxt = document.getElementById('mring-txt-'+id);
+    if (rtxt) { rtxt.textContent = pct+'%'; rtxt.style.color = col; }
+    var bar  = document.getElementById('mbar-'+id);
+    if (bar)  { bar.style.width = pct+'%'; bar.style.background = col; }
+    var pctEl= document.getElementById('mpct-'+id);
+    if (pctEl) pctEl.textContent = pct+'%';
+
+    var card = document.getElementById('mobj-'+id);
+    if (card) {
+      var btn2 = card.querySelector('.st-btn');
+      if (btn2) { btn2.dataset.status=status; btn2.className='st-btn '+ST_CLS[status]; btn2.innerHTML=ST_EMOJI[status]+' '+status; }
+      card.classList.toggle('done', status==='completado');
+      card.classList.toggle('cancelled', status==='cancelado');
+      card.classList.toggle('status-completado', status==='completado');
+    }
+    showToast('Objetivo actualizado', 'success', 1800);
+  });
+}
+
+function deleteObj(type, id) {
+  if (!confirm('¿Eliminar este objetivo?')) return;
+  fetch('/objectives/'+type+'/'+id+'?_method=DELETE', { method:'POST' })
+    .then(function() { var el=document.getElementById((type==='weekly'?'w':'m')+'obj-'+id); if(el) el.remove(); });
+}
+</script>
+
+<%- include('partials/footer') %>

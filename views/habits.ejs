@@ -1,0 +1,616 @@
+<%- include('partials/header') %>
+
+<style>
+/* ── LAYOUT ─────────────────────────────────────────── */
+.hab-wrap { display:grid; grid-template-columns:1fr 280px; gap:1.5rem; align-items:start; }
+@media(max-width:900px){ .hab-wrap{ grid-template-columns:1fr; } }
+
+/* ── STAT PILLS ──────────────────────────────────────── */
+.hab-stats { display:flex; gap:.65rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+.hab-stat {
+  flex:1; min-width:100px;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.75rem 1rem;
+  display:flex; flex-direction:column; gap:.2rem;
+}
+.hab-stat-lbl { font-size:.6rem; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); }
+.hab-stat-val { font-family:var(--font-mono); font-size:1.3rem; font-weight:700; line-height:1; }
+.hab-stat-sub { font-size:.68rem; color:var(--text-muted); }
+
+/* ── DIAGNÓSTICO ─────────────────────────────────────── */
+.diag-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:1.25rem 1.5rem;
+  display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.diag-ring { position:relative; flex-shrink:0; }
+.diag-info { flex:1; min-width:200px; }
+.diag-estado {
+  display:inline-flex; align-items:center; gap:.4rem;
+  font-family:var(--font-mono); font-size:.72rem; font-weight:700;
+  padding:.2rem .65rem; border-radius:99px; margin-bottom:.5rem;
+}
+.diag-txt { font-size:.83rem; color:var(--text-soft); line-height:1.55; margin-bottom:.65rem; }
+.diag-rx {
+  background:var(--surface-2); border-left:3px solid var(--accent);
+  border-radius:0 var(--radius) var(--radius) 0; padding:.5rem .85rem;
+}
+.diag-rx-lbl { font-family:var(--font-mono); font-size:.58rem; text-transform:uppercase; letter-spacing:.1em; color:var(--accent); }
+.diag-rx-txt { font-size:.8rem; color:var(--text); margin-top:.15rem; }
+
+/* ── SECTION ─────────────────────────────────────────── */
+.sec-hdr {
+  font-size:.875rem; font-weight:700;
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:.75rem; padding-bottom:.5rem;
+  border-bottom:1px solid var(--border);
+}
+
+/* ── HABIT CARDS ─────────────────────────────────────── */
+.habits-col { display:flex; flex-direction:column; gap:.65rem; }
+.hcard {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:1rem 1.1rem;
+  transition: border-color .2s, box-shadow .2s;
+}
+.hcard.done {
+  border-color:rgba(34,197,94,.4);
+  box-shadow:0 0 0 1px rgba(34,197,94,.08);
+}
+.hcard-top { display:flex; align-items:flex-start; gap:.65rem; margin-bottom:.55rem; }
+.hcard-name { font-size:.92rem; font-weight:600; line-height:1.3; }
+.hcard-area { font-size:.6rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:.18rem; }
+
+/* Streak badge */
+.streak-badge {
+  display:inline-flex; align-items:center; gap:.2rem;
+  font-family:var(--font-mono); font-size:.7rem; font-weight:700;
+  padding:.18rem .5rem; border-radius:99px; white-space:nowrap;
+  flex-shrink:0;
+}
+.streak-fire  { background:rgba(245,158,11,.15); color:var(--accent); }
+.streak-green { background:rgba(34,197,94,.15);  color:var(--green); }
+.streak-muted { background:var(--surface-2);      color:var(--text-muted); }
+
+/* Stats row */
+.hcard-stats { display:flex; gap:0; border:1px solid var(--border); border-radius:var(--radius); margin:.55rem 0; overflow:hidden; }
+.hcard-stat  { flex:1; text-align:center; padding:.35rem .2rem; }
+.hcard-stat + .hcard-stat { border-left:1px solid var(--border); }
+.hcard-stat-l { font-size:.58rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+.hcard-stat-v { font-family:var(--font-mono); font-size:.8rem; font-weight:700; margin-top:.1rem; }
+
+/* 14-day grid */
+.dot-grid14 { display:grid; grid-template-columns:repeat(14,1fr); gap:3px; margin:.5rem 0 .65rem; }
+.dot-cell {
+  aspect-ratio:1; border-radius:3px;
+  background:var(--surface-3); transition:background .15s;
+}
+.dot-cell.done-cell { background:var(--green); }
+.dot-cell.today-cell { outline:2px solid var(--accent); outline-offset:1px; }
+
+/* Toggle button */
+.h-toggle {
+  width:100%; padding:.5rem; border-radius:var(--radius);
+  border:1px solid var(--border); background:var(--surface-2);
+  color:var(--text-soft); font-size:.82rem; cursor:pointer;
+  transition:all .2s; font-family:inherit; font-weight:500;
+}
+.h-toggle.done {
+  background:var(--green-dim); border-color:rgba(34,197,94,.5);
+  color:var(--green); font-weight:600;
+}
+.h-toggle:active { transform:scale(.99); }
+
+/* ── MALOS ───────────────────────────────────────────── */
+.malos-grid { display:grid; grid-template-columns:1fr 1fr; gap:.65rem; }
+@media(max-width:700px){ .malos-grid{ grid-template-columns:1fr; } }
+.mcard {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.9rem 1rem;
+  transition: border-color .2s;
+}
+.mcard.malo-ok   { border-color:rgba(34,197,94,.4); }
+.mcard.malo-risk { border-color:rgba(239,68,68,.4); }
+.mcard-top { display:flex; align-items:flex-start; gap:.5rem; margin-bottom:.55rem; }
+.mcard-name { font-size:.88rem; font-weight:600; flex:1; line-height:1.3; }
+.mcard-cat { font-size:.58rem; text-transform:uppercase; color:var(--text-muted); }
+.score-grid { display:flex; gap:.22rem; flex-wrap:wrap; margin-bottom:.45rem; }
+.sc-btn {
+  width:26px; height:26px; border-radius:5px;
+  border:1px solid var(--border); background:var(--surface-2);
+  color:var(--text-muted); font-family:var(--font-mono); font-size:.7rem;
+  font-weight:700; cursor:pointer; transition:all .12s;
+  display:flex; align-items:center; justify-content:center;
+}
+.sc-btn.sc-green { background:var(--green);  border-color:var(--green);  color:#000; }
+.sc-btn.sc-amber { background:var(--accent); border-color:var(--accent); color:#000; }
+.sc-btn.sc-red   { background:var(--red);    border-color:var(--red);    color:#fff; }
+.mfeed { font-size:.75rem; min-height:1rem; }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.hab-sidebar { display:flex; flex-direction:column; gap:1rem; }
+.side-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:1rem 1.1rem;
+}
+.side-title { font-size:.78rem; font-weight:700; margin-bottom:.75rem; color:var(--text-soft); text-transform:uppercase; letter-spacing:.06em; }
+
+/* Top rachas */
+.racha-row { display:flex; align-items:center; gap:.65rem; padding:.45rem 0; border-bottom:1px solid var(--border); }
+.racha-row:last-child { border-bottom:none; }
+.racha-num { font-family:var(--font-mono); font-size:1rem; font-weight:700; color:var(--accent); min-width:30px; text-align:center; }
+.racha-name { font-size:.82rem; flex:1; }
+.racha-fire { font-size:.78rem; }
+
+/* Área bars */
+.area-bar-row { margin-bottom:.5rem; }
+.area-bar-hdr { display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-soft); margin-bottom:.2rem; }
+.area-bar-track { height:6px; background:var(--surface-3); border-radius:4px; overflow:hidden; }
+.area-bar-fill  { height:100%; border-radius:4px; background:var(--green); transition:width .4s; }
+
+/* Semana mini-grid */
+.sem-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:.4rem; }
+.sem-cell { aspect-ratio:1; border-radius:4px; background:var(--surface-3); }
+.sem-cell.sem-done { background:var(--green); }
+.sem-cell.sem-partial { background:var(--accent); }
+.sem-day-lbl { font-size:.58rem; text-align:center; color:var(--text-muted); margin-top:.18rem; }
+.sem-labels { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Hábitos</h1>
+    <p class="page-subtitle">Sistema de hábitos diarios · ISD <strong><%= locals.diagnostico ? diagnostico.scoreDiario : '—' %></strong>/10</p>
+  </div>
+  <div style="display:flex;gap:.5rem">
+    <button class="btn btn-ghost" onclick="toggleModal('modal-nuevo-malo')">+ Mal hábito</button>
+    <button class="btn btn-primary" onclick="toggleModal('modal-nuevo-habito')">+ Buen hábito</button>
+  </div>
+</div>
+
+<!-- STAT PILLS -->
+<div class="hab-stats">
+  <div class="hab-stat">
+    <div class="hab-stat-lbl">Completados hoy</div>
+    <div class="hab-stat-val" style="color:var(--green)"><%= locals.completadosHoy || 0 %>/<%= locals.habits ? habits.length : 0 %></div>
+    <div class="hab-stat-sub">buenos hábitos</div>
+  </div>
+  <div class="hab-stat">
+    <div class="hab-stat-lbl">% esta semana</div>
+    <div class="hab-stat-val" style="color:<%= (locals.pctSemana||0)>=70?'var(--green)':(locals.pctSemana||0)>=40?'var(--accent)':'var(--red)' %>"><%= locals.pctSemana || 0 %>%</div>
+    <div class="hab-stat-sub">media 7 días</div>
+  </div>
+  <div class="hab-stat">
+    <div class="hab-stat-lbl">Mejor racha</div>
+    <div class="hab-stat-val" style="color:var(--accent)"><%= locals.mejorRacha || 0 %>d</div>
+    <div class="hab-stat-sub">días consecutivos</div>
+  </div>
+  <div class="hab-stat">
+    <div class="hab-stat-lbl">Racha media</div>
+    <div class="hab-stat-val"><%= locals.rachaMedia || 0 %>d</div>
+    <div class="hab-stat-sub">promedio hábitos</div>
+  </div>
+  <div class="hab-stat">
+    <div class="hab-stat-lbl">ISD Score</div>
+    <div class="hab-stat-val" style="color:<%= locals.diagnostico ? (diagnostico.color==='green'?'var(--green)':diagnostico.color==='amber'?'var(--accent)':'var(--red)') : 'var(--text)' %>">
+      <%= locals.diagnostico ? diagnostico.scoreDiario : '—' %>
+    </div>
+    <div class="hab-stat-sub">índice salud diaria</div>
+  </div>
+</div>
+
+<!-- DIAGNÓSTICO -->
+<% if (locals.diagnostico) { %>
+<div class="diag-card">
+  <div class="diag-ring">
+    <svg width="88" height="88" viewBox="0 0 88 88">
+      <circle cx="44" cy="44" r="36" fill="none" stroke="var(--border)" stroke-width="7"/>
+      <circle cx="44" cy="44" r="36" fill="none"
+        stroke="<%= diagnostico.color==='green'?'#22c55e':diagnostico.color==='amber'?'#f59e0b':diagnostico.color==='orange'?'#f97316':'#ef4444' %>"
+        stroke-width="7"
+        stroke-dasharray="226.2"
+        stroke-dashoffset="<%= Math.round(226.2*(1-diagnostico.scoreDiario/10)) %>"
+        stroke-linecap="round"
+        transform="rotate(-90 44 44)"/>
+      <text x="44" y="40" text-anchor="middle" font-family="Space Mono,monospace" font-size="16" font-weight="700" fill="var(--text)"><%= diagnostico.scoreDiario %></text>
+      <text x="44" y="53" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8.5" fill="var(--text-muted)">ISD/10</text>
+    </svg>
+  </div>
+  <div class="diag-info">
+    <div>
+      <span class="diag-estado" style="
+        background:<%= diagnostico.color==='green'?'var(--green-dim)':diagnostico.color==='amber'?'var(--accent-dim)':'var(--red-dim)' %>;
+        color:<%= diagnostico.color==='green'?'var(--green)':diagnostico.color==='amber'?'var(--accent)':'var(--red)' %>">
+        <%= diagnostico.color==='green'?'●':diagnostico.color==='amber'?'●':'●' %> <%= diagnostico.estado %>
+      </span>
+      <% if (diagnostico.fuga) { %>
+      <span style="font-size:.75rem;color:var(--text-muted);margin-left:.75rem">
+        Fuga: <strong style="color:var(--red)"><%= diagnostico.fuga.nombre %></strong>
+      </span>
+      <% } %>
+    </div>
+    <p class="diag-txt"><%= diagnostico.diagnostico %></p>
+    <div class="diag-rx">
+      <div class="diag-rx-lbl">Prescripción</div>
+      <p class="diag-rx-txt"><%= diagnostico.accion %></p>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- MAIN WRAP -->
+<div class="hab-wrap">
+
+  <!-- LEFT: Buenos + Malos -->
+  <div>
+
+    <!-- BUENOS HÁBITOS -->
+    <div class="sec-hdr">
+      <span>✅ Buenos Hábitos</span>
+      <span class="badge badge-green" id="bh-counter"><%= locals.completadosHoy||0 %>/<%= locals.habits?habits.length:0 %> hoy</span>
+    </div>
+
+    <% if (!locals.habits || habits.length === 0) { %>
+    <div class="empty-card" style="margin-bottom:1.5rem"><p>Sin hábitos. Agrega tu primer hábito positivo.</p></div>
+    <% } else { %>
+    <div class="habits-col" style="margin-bottom:1.75rem">
+      <% habits.forEach(function(h) {
+        var streakCls = h.streak >= 7 ? 'streak-fire' : h.streak >= 3 ? 'streak-green' : 'streak-muted';
+        var fireIcon  = h.streak >= 7 ? '🔥' : h.streak >= 3 ? '✅' : '○';
+      %>
+      <div class="hcard <%= h.completadoHoy ? 'done' : '' %>" id="hcard-<%= h.id %>">
+        <div class="hcard-top">
+          <div style="flex:1">
+            <div class="hcard-area"><%= h.area %></div>
+            <div class="hcard-name"><%= h.name %></div>
+          </div>
+          <span class="streak-badge <%= streakCls %>"><%= fireIcon %> <%= h.streak %>d</span>
+          <form action="/habits/<%= h.id %>?_method=DELETE" method="POST" onsubmit="return confirm('Eliminar hábito?')" style="margin:0">
+            <button type="submit" class="btn-icon btn-icon--danger" title="Eliminar">✕</button>
+          </form>
+        </div>
+
+        <!-- 14-day dot grid -->
+        <div class="dot-grid14">
+          <% (locals.last14||[]).forEach(function(gday, gi) {
+            var isDone  = h.grid14 && h.grid14[gi];
+            var isToday = gday === today;
+          %>
+          <div class="dot-cell <%= isDone?'done-cell':'' %> <%= isToday?'today-cell':'' %>" title="<%= gday %>"></div>
+          <% }); %>
+        </div>
+
+        <!-- Stats -->
+        <div class="hcard-stats">
+          <div class="hcard-stat">
+            <div class="hcard-stat-l">Racha</div>
+            <div class="hcard-stat-v" style="color:<%= h.streak>=7?'var(--accent)':'var(--text)' %>"><%= h.streak %>d</div>
+          </div>
+          <div class="hcard-stat">
+            <div class="hcard-stat-l">7 días</div>
+            <div class="hcard-stat-v" style="color:<%= h.rate7>=70?'var(--green)':h.rate7>=40?'var(--accent)':'var(--red)' %>"><%= h.rate7 %>%</div>
+          </div>
+          <div class="hcard-stat">
+            <div class="hcard-stat-l">30 días</div>
+            <div class="hcard-stat-v"><%= h.rate30 %>%</div>
+          </div>
+        </div>
+
+        <!-- Toggle -->
+        <button class="h-toggle <%= h.completadoHoy?'done':'' %>"
+          id="tbtn-<%= h.id %>"
+          onclick="toggleHabit(<%= h.id %>)">
+          <%= h.completadoHoy ? '✓ Completado hoy' : 'Marcar como hecho' %>
+        </button>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+    <!-- MALOS HÁBITOS -->
+    <div class="sec-hdr">
+      <span>☠️ Malos Hábitos</span>
+      <span class="badge badge-warn" id="mh-badge">
+        <%= locals.malos ? malos.filter(m=>m.scoreHoy!==null&&m.scoreHoy<5).length : 0 %> en riesgo
+      </span>
+    </div>
+
+    <% if (!locals.malos || malos.length === 0) { %>
+    <div class="empty-card"><p>Sin malos hábitos registrados.</p></div>
+    <% } else { %>
+    <div class="malos-grid">
+      <% malos.forEach(function(m) {
+        var mCls = m.scoreHoy===null ? '' : m.scoreHoy>=8 ? 'malo-ok' : m.scoreHoy<5 ? 'malo-risk' : '';
+        var feedColor = m.scoreHoy===null?'var(--text-muted)':m.scoreHoy>=8?'var(--green)':m.scoreHoy>=5?'var(--accent)':'var(--red)';
+        var feedTxt   = m.scoreHoy===null?'Sin registrar hoy':m.scoreHoy>=8?'✓ Excelente control':m.scoreHoy>=5?'⚡ Control moderado':'⚠ Caída detectada';
+      %>
+      <div class="mcard <%= mCls %>" id="mcard-<%= m.id %>">
+        <div class="mcard-top">
+          <div style="flex:1">
+            <div class="mcard-cat"><%= m.categoria %></div>
+            <div class="mcard-name"><%= m.name %></div>
+          </div>
+          <span class="priority-badge priority-<%= m.impacto>=7?'alta':m.impacto>=4?'media':'baja' %>" style="font-size:.6rem">
+            <%= m.impacto %>/10
+          </span>
+          <form action="/habits/malo/<%= m.id %>?_method=DELETE" method="POST" onsubmit="return confirm('Eliminar?')" style="margin:0">
+            <button type="submit" class="btn-icon btn-icon--danger">✕</button>
+          </form>
+        </div>
+        <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:.4rem">1=caí · 10=no caí hoy</div>
+        <div class="score-grid" id="srow-<%= m.id %>">
+          <% for(var s=1; s<=10; s++) {
+            var cls = m.scoreHoy===s ? (s>=7?'sc-green':s>=4?'sc-amber':'sc-red') : '';
+          %>
+          <button class="sc-btn <%= cls %>" onclick="setScore(<%= m.id %>, <%= s %>)" data-s="<%= s %>"><%= s %></button>
+          <% } %>
+        </div>
+        <div class="mfeed" id="mfeed-<%= m.id %>" style="color:<%= feedColor %>"><%= feedTxt %></div>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="hab-sidebar">
+
+    <!-- Top rachas -->
+    <% if (locals.topRachas && topRachas.length > 0) { %>
+    <div class="side-card">
+      <div class="side-title">🔥 Top Rachas</div>
+      <% topRachas.forEach(function(h) { %>
+      <div class="racha-row">
+        <div class="racha-num"><%= h.streak %></div>
+        <div class="racha-name"><%= h.name %></div>
+        <div class="racha-fire"><%= h.streak>=14?'🔥🔥':h.streak>=7?'🔥':'○' %></div>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+    <!-- Área breakdown -->
+    <% if (locals.areaBars && areaBars.length > 0) { %>
+    <div class="side-card">
+      <div class="side-title">📊 Por Área</div>
+      <% areaBars.forEach(function(ab) { %>
+      <div class="area-bar-row">
+        <div class="area-bar-hdr">
+          <span><%= ab.area %></span>
+          <span style="font-family:var(--font-mono);font-size:.7rem"><%= ab.done %>/<%= ab.total %></span>
+        </div>
+        <div class="area-bar-track">
+          <div class="area-bar-fill" style="width:<%= ab.pct %>%;background:<%= ab.pct>=70?'var(--green)':ab.pct>=40?'var(--accent)':'var(--red)' %>"></div>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+    <!-- Semana resumen -->
+    <% if (locals.habits && habits.length > 0) { %>
+    <div class="side-card">
+      <div class="side-title">📅 Esta Semana</div>
+      <%
+        var semDays = ['L','M','X','J','V','S','D'];
+        var semDates = [];
+        var semToday = new Date(today);
+        var semDow = semToday.getDay(); // 0=Sun
+        var semLun = new Date(semToday); semLun.setDate(semLun.getDate() - ((semDow+6)%7));
+        for(var si=0; si<7; si++){
+          var sd = new Date(semLun); sd.setDate(sd.getDate()+si);
+          semDates.push(sd.toISOString().split('T')[0]);
+        }
+      %>
+      <div class="sem-grid">
+        <% semDates.forEach(function(sd) { %>
+        <%
+          var semDone = 0; var semTot = habits.length;
+          habits.forEach(function(h){ if(h.grid14){ var idx = (locals.last14||[]).indexOf(sd); if(idx>=0 && h.grid14[idx]) semDone++; } });
+          var semPct = semTot ? semDone/semTot : 0;
+          var semCls = semPct>=0.7?'sem-done':semPct>0?'sem-partial':'';
+        %>
+        <div class="sem-cell <%= semCls %>" title="<%= sd %> · <%= semDone %>/<%= semTot %>"></div>
+        <% }); %>
+      </div>
+      <div class="sem-labels">
+        <% semDays.forEach(function(dl){ %>
+        <div class="sem-day-lbl"><%= dl %></div>
+        <% }); %>
+      </div>
+      <div style="display:flex;gap:1rem;margin-top:.65rem;font-size:.7rem;color:var(--text-muted)">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--green);vertical-align:middle;margin-right:.25rem"></span>≥70%</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--accent);vertical-align:middle;margin-right:.25rem"></span>parcial</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--surface-3);vertical-align:middle;margin-right:.25rem"></span>sin datos</span>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Accesos rápidos -->
+    <div class="side-card" style="padding:.75rem 1rem">
+      <div style="display:flex;flex-direction:column;gap:.4rem">
+        <a href="/checkin" class="btn btn-ghost" style="font-size:.8rem;text-align:center">📋 Check-in diario</a>
+        <a href="/malos"   class="btn btn-ghost" style="font-size:.8rem;text-align:center">☠️ Malos hábitos (detalle)</a>
+        <a href="/reflexion/metricas" class="btn btn-ghost" style="font-size:.8rem;text-align:center">📊 Ver métricas</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL NUEVO BUEN HÁBITO -->
+<div class="modal-overlay" id="modal-nuevo-habito" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Nuevo Buen Hábito</h3>
+      <button onclick="toggleModal('modal-nuevo-habito')" class="modal-close">✕</button>
+    </div>
+    <form action="/habits" method="POST" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">Nombre del hábito</label>
+        <input type="text" name="name" class="input" placeholder="Ej: Hacer ejercicio 30 min" required />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Área</label>
+        <select name="area" class="input">
+          <option value="ejercicio">ejercicio</option>
+          <option value="sueno">sueño</option>
+          <option value="alimentacion">alimentación</option>
+          <option value="hidratacion">hidratación</option>
+          <option value="estudio">estudio</option>
+          <option value="salud mental">salud mental</option>
+          <option value="disciplina">disciplina</option>
+          <option value="finanzas">finanzas</option>
+          <option value="familia">familia</option>
+          <option value="general">general</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-nuevo-habito')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL NUEVO MAL HÁBITO -->
+<div class="modal-overlay" id="modal-nuevo-malo" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Nuevo Mal Hábito</h3>
+      <button onclick="toggleModal('modal-nuevo-malo')" class="modal-close">✕</button>
+    </div>
+    <form action="/habits/malo/nuevo" method="POST" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">¿Qué quieres eliminar?</label>
+        <input type="text" name="name" class="input" placeholder="Ej: Redes sociales en exceso" required />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Categoría</label>
+        <select name="categoria" class="input">
+          <option value="tecnologia">tecnología</option>
+          <option value="alimentacion">alimentación</option>
+          <option value="sueno">sueño</option>
+          <option value="productividad">productividad</option>
+          <option value="salud mental">salud mental</option>
+          <option value="social">social</option>
+          <option value="general">general</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Impacto negativo (1–10)</label>
+        <input type="range" name="impacto" min="1" max="10" step="1" value="5"
+          style="width:100%;accent-color:var(--red)"
+          oninput="document.getElementById('imp-val').textContent=this.value" />
+        <div style="text-align:center;font-family:var(--font-mono);color:var(--red);margin-top:.25rem" id="imp-val">5</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-nuevo-malo')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var TODAY = '<%= today %>';
+var totalHabits = <%= locals.habits ? habits.length : 0 %>;
+
+function toggleHabit(id) {
+  var btn  = document.getElementById('tbtn-' + id);
+  var card = document.getElementById('hcard-' + id);
+  var prev = btn.textContent.trim();
+  btn.disabled = true;
+  btn.textContent = '⏳';
+
+  progressStart();
+  fetch('/habits/' + id + '/toggle', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify({ date: TODAY })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    progressDone();
+    var done = d.completado;
+    btn.disabled = false;
+    btn.textContent = done ? '✓ Completado hoy' : 'Marcar como hecho';
+    btn.classList.toggle('done', done);
+    card.classList.toggle('done', done);
+
+    // Update today dot in grid
+    var dots = card.querySelectorAll('.dot-cell');
+    if (dots.length >= 14) {
+      var last = dots[dots.length - 1];
+      last.classList.toggle('done-cell', done);
+    }
+
+    // Update counter badge
+    updateCounter();
+    showToast(done ? '✓ Hábito completado' : 'Hábito desmarcado', done ? 'success' : 'info');
+  })
+  .catch(function(){
+    progressDone();
+    btn.disabled = false;
+    btn.textContent = prev;
+    showToast('Error al guardar', 'error');
+  });
+}
+
+function updateCounter() {
+  var done = document.querySelectorAll('.hcard.done').length;
+  var badge = document.getElementById('bh-counter');
+  if (badge) badge.textContent = done + '/' + totalHabits + ' hoy';
+}
+
+function setScore(maloId, score) {
+  progressStart();
+  fetch('/habits/malo/' + maloId + '/score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify({ fecha: TODAY, score: score })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    progressDone();
+    var row  = document.getElementById('srow-' + maloId);
+    var feed = document.getElementById('mfeed-' + maloId);
+    var card = document.getElementById('mcard-' + maloId);
+
+    row.querySelectorAll('.sc-btn').forEach(function(b){
+      var s = parseInt(b.dataset.s);
+      b.className = 'sc-btn';
+      if (s === score) b.classList.add(score>=7?'sc-green':score>=4?'sc-amber':'sc-red');
+    });
+
+    card.classList.remove('malo-ok','malo-risk');
+    if (score >= 8) {
+      card.classList.add('malo-ok');
+      feed.style.color = 'var(--green)';
+      feed.textContent = '✓ Excelente control';
+    } else if (score >= 5) {
+      feed.style.color = 'var(--accent)';
+      feed.textContent = '⚡ Control moderado';
+    } else {
+      card.classList.add('malo-risk');
+      feed.style.color = 'var(--red)';
+      feed.textContent = '⚠ Caída detectada';
+    }
+
+    // Update risk badge
+    var riskCount = document.querySelectorAll('.mcard.malo-risk').length;
+    var badge = document.getElementById('mh-badge');
+    if (badge) badge.textContent = riskCount + ' en riesgo';
+    showToast('Score guardado', 'success', 1800);
+  })
+  .catch(function(){
+    progressDone();
+    showToast('Error al guardar', 'error');
+  });
+}
+</script>
+
+<%- include('partials/footer') %>

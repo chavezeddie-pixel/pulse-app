@@ -1,0 +1,245 @@
+<%
+const _pageTitles = {
+  'dashboard':'Dashboard','checkin':'Check-in','perfil':'Mi Perfil',
+  'rutina':'Rutina','agenda':'Agenda','objectives':'Objetivos',
+  'habits':'Buenos Hábitos','malos':'Malos Hábitos',
+  'reflexion':'Reflexión','notas':'Cuaderno','coach':'Coach IA',
+  'reflexion-metricas':'Métricas','mejora':'Mejora Personal'
+};
+const _pt = _pageTitles[locals.page] || 'Pulse';
+%>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — <%= _pt %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <script>
+    // Apply theme before paint to avoid flash
+    (function(){
+      var t = localStorage.getItem('lt-theme') || 'dark';
+      if (t === 'light') document.documentElement.classList.add('prelight');
+    })();
+  </script>
+  <style>
+    html.prelight body { background:#f0f2f7!important; }
+  </style>
+</head>
+<body data-page="<%= locals.page || '' %>">
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-mark">P</span>
+    <div class="logo-text">Pulse</div>
+  </div>
+
+  <ul class="nav-links">
+
+    <li class="nav-group">
+      <div class="nav-group-label">ESTADO</div>
+      <a href="/" class="<%= locals.page === 'dashboard' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+        <span class="nav-kb">alt+1</span>
+      </a>
+      <a href="/checkin" class="<%= locals.page === 'checkin' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        Check-in
+        <span class="nav-kb">alt+2</span>
+      </a>
+      <a href="/perfil" class="<%= locals.page === 'perfil' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Mi Perfil
+        <span class="nav-kb">alt+3</span>
+      </a>
+    </li>
+
+    <li class="nav-group">
+      <div class="nav-group-label">PLANIFICACIÓN</div>
+      <a href="/rutina" class="<%= locals.page === 'rutina' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Rutina
+        <span class="nav-kb">alt+4</span>
+      </a>
+      <a href="/agenda" class="<%= locals.page === 'agenda' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Agenda
+      </a>
+      <a href="/objectives" class="<%= locals.page === 'objectives' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        Objetivos
+      </a>
+    </li>
+
+    <li class="nav-group nav-collapsible <%= ['habits','malos'].includes(locals.page) ? 'open' : '' %>" id="grupo-habitos">
+      <div class="nav-group-label nav-group-toggle" onclick="toggleGrupo('grupo-habitos')">
+        HÁBITOS <span class="nav-arrow" id="arr-habitos">▾</span>
+      </div>
+      <div class="nav-group-items <%= ['habits','malos'].includes(locals.page) ? '' : 'collapsed' %>">
+        <a href="/habits" class="<%= locals.page === 'habits' ? 'active' : '' %>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Buenos Hábitos
+          <span class="nav-kb">alt+5</span>
+        </a>
+        <a href="/malos" class="<%= locals.page === 'malos' ? 'active' : '' %>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          Malos Hábitos
+          <span class="nav-kb">alt+6</span>
+        </a>
+      </div>
+    </li>
+
+    <li class="nav-group nav-collapsible <%= ['notas','reflexion','coach'].includes(locals.page) ? 'open' : '' %>" id="grupo-diario">
+      <div class="nav-group-label nav-group-toggle" onclick="toggleGrupo('grupo-diario')">
+        DIARIO <span class="nav-arrow" id="arr-diario">▾</span>
+      </div>
+      <div class="nav-group-items <%= ['notas','reflexion','coach'].includes(locals.page) ? '' : 'collapsed' %>">
+        <a href="/reflexion" class="<%= locals.page === 'reflexion' ? 'active' : '' %>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Reflexión
+          <span class="nav-kb">alt+7</span>
+        </a>
+        <a href="/notas" class="<%= locals.page === 'notas' ? 'active' : '' %>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Cuaderno
+          <span class="nav-kb">alt+8</span>
+        </a>
+        <a href="/coach" class="<%= locals.page === 'coach' ? 'active' : '' %>">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Coach IA
+          <span class="nav-kb">alt+9</span>
+        </a>
+      </div>
+    </li>
+
+    <li class="nav-group">
+      <div class="nav-group-label">ANÁLISIS</div>
+      <a href="/reflexion/metricas" class="<%= locals.page === 'reflexion-metricas' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Métricas
+      </a>
+      <a href="/mejora" class="<%= locals.page === 'mejora' ? 'active' : '' %>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Mejora Personal
+      </a>
+    </li>
+
+    <% if (locals.isAdmin) { %>
+    <li class="nav-group">
+      <div class="nav-group-label">ADMIN</div>
+      <a href="/admin/panel" class="<%= locals.page === 'admin-panel' ? 'active' : '' %>" style="color:#f59e0b">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Panel Demo
+      </a>
+    </li>
+    <% } %>
+
+  </ul>
+
+  <!-- Bottom: date + theme toggle + session -->
+  <div class="sidebar-bottom">
+    <% if (locals.isDemo) { %>
+      <a href="/demo/exit" class="sidebar-session-link demo-exit" title="Salir del demo">Salir Demo</a>
+    <% } else if (locals.isAdmin) { %>
+      <a href="/admin/logout" class="sidebar-session-link admin-logout" title="Cerrar sesion admin">Cerrar sesion</a>
+    <% } %>
+    <div class="sidebar-date-wrap">
+      <div class="date-label">HOY</div>
+      <div class="date-value" id="sidebarDate">--</div>
+    </div>
+    <button class="theme-toggle" id="themeToggle" title="Cambiar tema" onclick="toggleTheme()">&#127769;</button>
+  </div>
+</nav>
+
+<% if (locals.isDemo) { %>
+<div class="demo-banner">
+  <span class="demo-banner-icon">&#128161;</span>
+  <span>Modo Demo<% if (locals.demoName) { %> — <strong><%= demoName %></strong><% } %></span>
+  <a href="/demo/exit" class="demo-banner-exit">Salir</a>
+</div>
+<style>
+.demo-banner { position:fixed; top:0; left:0; right:0; z-index:9999; display:flex; align-items:center; justify-content:center; gap:.5rem; padding:.35rem 1rem; background:linear-gradient(135deg,#f59e0b,#f97316); color:#000; font-size:.78rem; font-weight:600; font-family:'DM Sans',sans-serif; }
+.demo-banner-icon { font-size:.95rem; }
+.demo-banner-exit { color:#000; text-decoration:underline; margin-left:.5rem; font-weight:700; }
+body { padding-top:30px !important; }
+.sidebar { top:30px !important; height:calc(100vh - 30px) !important; }
+.mobile-bottom-nav { /* no change needed */ }
+@media(max-width:768px) { .demo-banner { font-size:.7rem; padding:.25rem .5rem; } body { padding-top:25px !important; } .sidebar { top:25px !important; } }
+</style>
+<% } %>
+
+<% if (locals.isDemo || locals.isAdmin) { %>
+<script>window.__clauchNew = <%= locals.clauchNew ? 'true' : 'false' %>;</script>
+<script src="/js/clauch.js" defer></script>
+<% } %>
+
+<main class="main-content">
+
+<script>
+// ── NAV GROUPS ───────────────────────────────────
+function toggleGrupo(id) {
+  const group = document.getElementById(id);
+  if (!group) return;
+  const items = group.querySelector('.nav-group-items');
+  const isNowCollapsed = items.classList.toggle('collapsed');
+  // sync .open class (used for CSS arrow rotation)
+  group.classList.toggle('open', !isNowCollapsed);
+}
+
+// ── THEME ─────────────────────────────────────────
+function applyTheme(t) {
+  document.body.classList.toggle('light', t === 'light');
+  document.documentElement.classList.remove('prelight');
+  var btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = t === 'light' ? '🌙' : '☀️';
+  localStorage.setItem('lt-theme', t);
+}
+
+function toggleTheme() {
+  var cur = localStorage.getItem('lt-theme') || 'dark';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+
+// Apply on load
+(function(){
+  var t = localStorage.getItem('lt-theme') || 'dark';
+  applyTheme(t);
+})();
+
+// ── SIDEBAR DATE ──────────────────────────────────
+(function(){
+  var el = document.getElementById('sidebarDate');
+  if (!el) return;
+  var days = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var d = new Date();
+  el.textContent = days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()];
+})();
+
+// ── MODAL HELPERS (global) ────────────────────────
+function toggleModal(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.toggle('open');
+  if (el.classList.contains('open')) {
+    var first = el.querySelector('input:not([type=hidden]),textarea,select');
+    if (first) setTimeout(function(){ first.focus(); }, 80);
+  }
+}
+
+function closeOnOverlay(e, id) {
+  if (e.target === e.currentTarget) toggleModal(id);
+}
+
+// Close modal on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(function(m){
+      m.classList.remove('open');
+    });
+  }
+});
+</script>

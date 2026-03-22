@@ -1,0 +1,56 @@
+<%- include('partials/header') %>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Tu Opinión</h1>
+    <p class="page-subtitle">Ayúdanos a mejorar Pulse</p>
+  </div>
+</div>
+
+<% if (enviado) { %>
+<div class="card" style="text-align:center;padding:3rem">
+  <div style="font-size:3rem;margin-bottom:1rem">🎉</div>
+  <h2 class="card-title" style="font-size:1.5rem;margin-bottom:1rem">¡Gracias por tu feedback!</h2>
+  <p style="color:var(--text-muted);margin-bottom:2rem">Tu opinión es muy valiosa para seguir mejorando.</p>
+  <a href="/" class="btn btn-primary">Seguir explorando</a>
+</div>
+<% } else { %>
+<div class="card" style="max-width:600px">
+  <form action="/feedback" method="POST" class="modal-form" style="gap:1.25rem;display:flex;flex-direction:column">
+    <div class="form-field">
+      <label class="field-label">Tu nombre (opcional)</label>
+      <input type="text" name="nombre" class="input" placeholder="¿Cómo te llamas?" />
+    </div>
+    <div class="form-field">
+      <label class="field-label">Tu email (opcional)</label>
+      <input type="email" name="email" class="input" placeholder="para enviarte novedades" />
+    </div>
+    <div class="form-field">
+      <label class="field-label">¿Qué te pareció la app?</label>
+      <div class="opciones-grid">
+        <% [1,2,3,4,5].forEach(n => { %>
+        <label class="opcion-card" id="punt-<%= n %>">
+          <input type="radio" name="puntuacion" value="<%= n %>" onchange="selectOpcion(this)" />
+          ${'⭐'.repeat(n)}
+        </label>
+        <% }) %>
+      </div>
+    </div>
+    <div class="form-field">
+      <label class="field-label">¿Qué cambiarías o agregarías?</label>
+      <textarea name="comentario" rows="5" class="textarea" placeholder="Tu opinión honesta..."></textarea>
+    </div>
+    <div class="form-actions">
+      <a href="/" class="btn btn-ghost">Volver</a>
+      <button type="submit" class="btn btn-primary">Enviar Feedback</button>
+    </div>
+  </form>
+</div>
+<% } %>
+
+<script>
+function selectOpcion(input) {
+  document.querySelectorAll('input[name="'+input.name+'"]').forEach(i => i.closest('.opcion-card').classList.remove('checked'));
+  input.closest('.opcion-card').classList.add('checked');
+}
+</script>
+<%- include('partials/footer') %>

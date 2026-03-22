@@ -1,0 +1,610 @@
+<%- include('partials/header') %>
+
+<style>
+/* ══════════════════════════════
+   RUTINA — REDESIGN
+══════════════════════════════ */
+
+/* Day tabs */
+.day-tabs { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.25rem; }
+.day-tab {
+  display:flex; flex-direction:column; align-items:center; gap:.2rem;
+  padding:.5rem .7rem; border-radius:12px; border:1px solid var(--border);
+  background:var(--surface); cursor:pointer; text-decoration:none;
+  transition:all .18s; min-width:56px; user-select:none;
+}
+.day-tab:hover { border-color:var(--accent); }
+.day-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+.day-tab.hoy:not(.active) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.day-tab .dt-name { font-size:.65rem; text-transform:uppercase; letter-spacing:.06em; opacity:.75; }
+.day-tab .dt-num  { font-size:.95rem; font-weight:800; font-family:var(--font-mono); line-height:1; }
+.day-tab .dt-meta { font-size:.58rem; font-family:var(--font-mono); opacity:.7; }
+
+/* Main layout */
+.rutina-layout { display:grid; grid-template-columns:1fr 290px; gap:1rem; align-items:start; }
+@media(max-width:860px) { .rutina-layout { grid-template-columns:1fr; } }
+
+/* Block rows */
+.bloque-list { display:flex; flex-direction:column; gap:.3rem; }
+.bloque-card {
+  display:flex; align-items:stretch; border-radius:11px;
+  border:1px solid var(--border); overflow:hidden; transition:all .18s;
+  background:var(--surface);
+}
+.bloque-card:hover { border-color:var(--border-2); }
+.bloque-card.activo { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)22; }
+.bloque-card.completado { opacity:.45; }
+.bloque-card.completado .bloque-nom { text-decoration:line-through; }
+
+/* Left color bar */
+.bloque-bar { width:4px; flex-shrink:0; }
+
+/* Check btn */
+.bloque-check {
+  width:20px; height:20px; border-radius:50%; border:2px solid var(--border-2);
+  flex-shrink:0; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; font-size:.6rem; font-weight:800;
+  color:transparent; transition:all .15s; align-self:center; margin:0 .5rem;
+}
+.bloque-check.done { background:#22c55e; border-color:#22c55e; color:#fff; }
+.bloque-check:hover:not(.done) { border-color:var(--accent); }
+
+/* Block content */
+.bloque-body { flex:1; padding:.5rem .6rem; min-width:0; }
+.bloque-time  { font-family:var(--font-mono); font-size:.65rem; color:var(--text-muted); margin-bottom:.15rem; display:flex; align-items:center; gap:.3rem; }
+.bloque-now   { font-size:.6rem; background:var(--accent); color:#fff; padding:.05rem .3rem; border-radius:99px; font-weight:700; }
+.bloque-nom   { font-size:.85rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bloque-tags  { display:flex; gap:.3rem; margin-top:.2rem; flex-wrap:wrap; }
+.bloque-tag   { font-size:.58rem; padding:.05rem .3rem; border-radius:99px; border:1px solid var(--border); }
+.bloque-dur   { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); }
+
+/* Right actions */
+.bloque-actions { display:flex; flex-direction:column; justify-content:center; gap:.2rem; padding:.4rem .35rem; border-left:1px solid var(--border); }
+.ba-btn { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:.2rem; border-radius:5px; font-size:.75rem; line-height:1; }
+.ba-btn:hover.edit { color:var(--accent); background:var(--accent-dim); }
+.ba-btn:hover.del  { color:#ef4444; background:#ef444411; }
+
+/* Edit inline */
+.bloque-edit { display:none; padding:.65rem .75rem; background:var(--surface); border-top:1px solid var(--border); }
+.bloque-edit.open { display:block; }
+.edit-grid { display:grid; grid-template-columns:1fr 1fr; gap:.4rem; margin-bottom:.4rem; }
+
+/* Progress bar */
+.prog-strip { height:5px; background:var(--surface-2); border-radius:99px; overflow:hidden; flex:1; }
+.prog-fill  { height:100%; border-radius:99px; transition:width .35s; }
+
+/* Category pills */
+.cat-row { display:flex; align-items:center; gap:.4rem; padding:.3rem 0; }
+.cat-label { font-size:.68rem; color:var(--text-muted); width:68px; flex-shrink:0; }
+.cat-time  { font-family:var(--font-mono); font-size:.65rem; color:var(--text-muted); width:32px; text-align:right; flex-shrink:0; }
+
+/* Visual timeline sidebar */
+.tl-outer { position:relative; }
+.tl-now-line { position:absolute; left:0; right:0; height:2px; background:var(--accent); z-index:2; border-radius:1px; }
+.tl-now-dot  { position:absolute; left:-3px; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--accent); }
+.tl-block {
+  border-radius:8px; border:1px solid var(--border);
+  padding:.35rem .5rem; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; gap:.4rem; margin-bottom:.3rem;
+}
+.tl-block.tl-activo { border-color:var(--accent); background:var(--accent-dim); }
+.tl-block.tl-pasado { opacity:.38; }
+.tl-block .tl-hora  { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); white-space:nowrap; min-width:84px; }
+.tl-block .tl-nom   { font-size:.78rem; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tl-check2 { width:16px; height:16px; border-radius:50%; border:2px solid var(--border-2); flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:.55rem; font-weight:800;
+  color:transparent; transition:all .12s; }
+.tl-check2.done { background:#22c55e; border-color:#22c55e; color:#fff; }
+
+/* Weekly grid */
+.week-grid { display:flex; flex-direction:column; gap:.3rem; }
+.week-row2 { display:flex; align-items:center; gap:.5rem; padding:.35rem .5rem; border-radius:8px; border:1px solid var(--border); background:var(--surface); }
+.week-row2.es-hoy { border-color:var(--accent); background:var(--accent-dim); }
+.week-row2 a { font-size:.8rem; min-width:76px; text-decoration:none; color:inherit; }
+
+/* Section label */
+.sec-lbl { font-size:.62rem; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); font-family:var(--font-mono); margin-bottom:.5rem; }
+
+/* Stats bar */
+.stats-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:.5rem; margin-bottom:1.25rem; }
+.stat-pill { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:.6rem .75rem; text-align:center; }
+.stat-pill .sv { font-size:1.25rem; font-weight:700; font-family:var(--font-mono); line-height:1; }
+.stat-pill .sl { font-size:.62rem; color:var(--text-muted); margin-top:.15rem; }
+
+/* Empty state */
+.rutina-empty { text-align:center; padding:2.5rem 1rem; background:var(--surface); border:1px dashed var(--border); border-radius:14px; }
+</style>
+
+<%
+var dias      = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+var diasLabel = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+var diaSeleccionado = query && query.dia ? query.dia : 'lunes';
+var DIAS_JS = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+var diaHoy  = DIAS_JS[new Date().getDay()];
+
+var CAT_COLORS = {
+  manana:'#60a5fa', trabajo:'#f59e0b', ejercicio:'#34d399',
+  familia:'#a78bfa', comida:'#2dd4bf', descanso:'#fb7185',
+  estudio:'#38bdf8', trayecto:'#94a3b8', general:'#64748b'
+};
+
+var bloquesHoy = rutina[diaHoy] || [];
+var totalHoy   = bloquesHoy.length;
+var doneHoy    = bloquesHoy.filter(function(b){ return completions.includes(diaHoy+'|'+b.inicio); }).length;
+var pctHoy     = totalHoy > 0 ? Math.round(doneHoy/totalHoy*100) : 0;
+
+var bloquesSel = rutina[diaSeleccionado] || [];
+
+function durMin(inicio, fin) {
+  var p=inicio.split(':'), q=fin.split(':');
+  return (parseInt(q[0])*60+parseInt(q[1])) - (parseInt(p[0])*60+parseInt(p[1]));
+}
+function durLabel(mins) {
+  if (mins <= 0) return '';
+  if (mins < 60) return mins+'min';
+  var h=Math.floor(mins/60), m=mins%60;
+  return h+'h'+(m?m+'m':'');
+}
+
+// Category distribution for selected day
+var catMap = {}, totalMins = 0;
+bloquesSel.forEach(function(b) {
+  var c = b.categoria || 'general';
+  var m = durMin(b.inicio, b.fin);
+  catMap[c] = (catMap[c] || 0) + Math.max(0, m);
+  totalMins += Math.max(0, m);
+});
+var totalHoras = Math.floor(totalMins/60) + 'h' + (totalMins%60 ? (totalMins%60)+'m' : '');
+%>
+
+<!-- HEADER -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.75rem">
+  <div>
+    <h1 class="page-title">🏃 Rutina Diaria</h1>
+    <p class="page-subtitle">Gestiona tu horario</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+    <% if (totalHoy > 0) { %>
+    <div style="font-size:.8rem;padding:.3rem .75rem;border-radius:99px;background:var(--accent-dim);color:var(--accent);font-family:var(--font-mono)">
+      Hoy: <span id="hdr-done"><%= doneHoy %></span>/<%= totalHoy %> · <span id="hdr-pct"><%= pctHoy %>%</span>
+    </div>
+    <% } %>
+    <div class="badge badge-accent" id="bloqueActual" style="font-size:.78rem"></div>
+  </div>
+</div>
+
+<!-- Stats bar rápida -->
+<% if (bloquesSel.length > 0) { %>
+<div class="stats-bar">
+  <div class="stat-pill">
+    <div class="sv" style="color:var(--accent)"><%= bloquesSel.length %></div>
+    <div class="sl">Bloques</div>
+  </div>
+  <div class="stat-pill">
+    <div class="sv" style="color:#38bdf8"><%= totalHoras %></div>
+    <div class="sl">Total</div>
+  </div>
+  <% if (diaSeleccionado === diaHoy) { %>
+  <div class="stat-pill">
+    <div class="sv" style="color:#22c55e"><%= doneHoy %></div>
+    <div class="sl">Hechos</div>
+  </div>
+  <div class="stat-pill">
+    <div class="sv" style="color:<%= pctHoy>=80?'#22c55e':pctHoy>=50?'var(--accent)':'#ef4444' %>"><%= pctHoy %>%</div>
+    <div class="sl">Progreso</div>
+  </div>
+  <% } %>
+</div>
+<% } %>
+
+<!-- DAY TABS -->
+<div class="day-tabs">
+  <% dias.forEach(function(d, i) {
+    var bCount = rutina[d] ? rutina[d].length : 0;
+    var wComp2 = (typeof weekCompletions !== 'undefined' && weekCompletions[d]) ? weekCompletions[d] : [];
+    var dDone2 = bCount > 0 ? rutina[d].filter(function(b){ return wComp2.includes(d+'|'+b.inicio); }).length : 0;
+    var dPct2  = bCount > 0 ? Math.round(dDone2/bCount*100) : 0;
+  %>
+  <a href="/rutina?dia=<%= d %>" class="day-tab <%= d===diaSeleccionado?'active':'' %> <%= d===diaHoy?'hoy':'' %>">
+    <span class="dt-name"><%= diasLabel[i].slice(0,3) %></span>
+    <span class="dt-num"><%= diasLabel[i].slice(0,2) %></span>
+    <span class="dt-meta">
+      <% if (bCount===0) { %>—
+      <% } else if (d===diaHoy) { %><%= dPct2 %>%
+      <% } else { %><%= bCount %>b
+      <% } %>
+    </span>
+  </a>
+  <% }); %>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="rutina-layout">
+
+  <!-- LEFT: Bloques del día seleccionado -->
+  <div>
+    <div class="card">
+      <div class="card-header" style="margin-bottom:.75rem">
+        <h2 class="card-title"><%= diasLabel[dias.indexOf(diaSeleccionado)] %></h2>
+        <div style="display:flex;align-items:center;gap:.4rem">
+          <% if (bloquesSel.length > 0) { %>
+          <button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="togglePanel('panel-copiar')">📋 Copiar día</button>
+          <% } %>
+          <button class="btn btn-primary btn-sm" onclick="toggleModal('modal-agregar')">+ Bloque</button>
+        </div>
+      </div>
+
+      <!-- Progress bar (solo si es hoy) -->
+      <% if (diaSeleccionado === diaHoy && totalHoy > 0) { %>
+      <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.85rem">
+        <div class="prog-strip">
+          <div class="prog-fill" id="progresoBarra" style="width:<%= pctHoy %>%;background:<%= pctHoy>=80?'#22c55e':pctHoy>=50?'var(--accent)':'#ef4444' %>"></div>
+        </div>
+        <span id="progresoPct" style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-muted);white-space:nowrap"><%= pctHoy %>%</span>
+      </div>
+      <% } %>
+
+      <!-- Copiar panel -->
+      <div id="panel-copiar" style="display:none;margin-bottom:.75rem">
+        <form action="/rutina/copiar-dia" method="POST" style="display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;padding:.65rem;background:var(--surface);border:1px solid var(--border);border-radius:10px">
+          <input type="hidden" name="diaOrigen" value="<%= diaSeleccionado %>" />
+          <span style="font-size:.8rem;color:var(--text-muted)">Copiar a:</span>
+          <select name="diaDestino" class="input" style="padding:.3rem .5rem;width:auto;font-size:.8rem">
+            <% dias.forEach(function(d, i) { if (d !== diaSeleccionado) { %>
+            <option value="<%= d %>"><%= diasLabel[i] %></option>
+            <% } }); %>
+          </select>
+          <select name="modo" class="input" style="padding:.3rem .5rem;width:auto;font-size:.8rem">
+            <option value="reemplazar">Reemplazar</option>
+            <option value="combinar">Combinar</option>
+          </select>
+          <button type="submit" class="btn btn-primary btn-sm">Copiar</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="togglePanel('panel-copiar')">✕</button>
+        </form>
+      </div>
+
+      <!-- Bloques -->
+      <% if (bloquesSel.length === 0) { %>
+      <div class="rutina-empty">
+        <div style="font-size:2.5rem;margin-bottom:.5rem">📅</div>
+        <p style="font-size:.88rem;font-weight:600;margin-bottom:.3rem">Sin bloques para este día</p>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:1rem">Agrega tu rutina o copia de otro día.</p>
+        <button class="btn btn-primary" onclick="toggleModal('modal-agregar')">+ Agregar bloque</button>
+      </div>
+      <% } else { %>
+      <div class="bloque-list">
+        <% bloquesSel.forEach(function(b, i) {
+          var cat   = b.categoria || 'general';
+          var color = CAT_COLORS[cat] || CAT_COLORS.general;
+          var bKey  = diaSeleccionado + '|' + b.inicio;
+          var isDone = completions.includes(bKey);
+          var dur   = durLabel(durMin(b.inicio, b.fin));
+          var catLbl = categorias[cat] ? categorias[cat].label : cat;
+        %>
+        <div id="bcard-<%= diaSeleccionado %>-<%= i %>">
+          <div class="bloque-card <%= isDone && diaSeleccionado===diaHoy ? 'completado' : '' %>"
+            id="brow-<%= diaSeleccionado %>-<%= i %>">
+            <div class="bloque-bar" style="background:<%= color %>"></div>
+
+            <% if (diaSeleccionado === diaHoy) { %>
+            <div class="bloque-check <%= isDone?'done':'' %>"
+              id="bchk-<%= diaSeleccionado %>-<%= i %>"
+              onclick="toggleComp('<%= bKey %>','<%= diaSeleccionado %>','<%= i %>')">
+              <%= isDone?'✓':'' %>
+            </div>
+            <% } else { %>
+            <div style="width:.5rem"></div>
+            <% } %>
+
+            <div class="bloque-body">
+              <div class="bloque-time">
+                <span><%= b.inicio %>–<%= b.fin %></span>
+                <% if (dur) { %><span class="bloque-dur"><%= dur %></span><% } %>
+              </div>
+              <div class="bloque-nom"><%= b.bloque %></div>
+              <div class="bloque-tags">
+                <span class="bloque-tag" style="background:<%= color %>22;color:<%= color %>;border-color:<%= color %>44"><%= catLbl %></span>
+              </div>
+            </div>
+
+            <div class="bloque-actions">
+              <button class="ba-btn edit" onclick="toggleEdit('<%= diaSeleccionado %>-<%= i %>')" title="Editar">✏</button>
+              <button class="ba-btn del" onclick="eliminarBloque('<%= diaSeleccionado %>','<%= i %>')" title="Eliminar">✕</button>
+            </div>
+          </div>
+
+          <!-- Inline edit -->
+          <div id="edit-<%= diaSeleccionado %>-<%= i %>" class="bloque-edit">
+            <form action="/rutina/editar-bloque" method="POST">
+              <input type="hidden" name="dia" value="<%= diaSeleccionado %>" />
+              <input type="hidden" name="index" value="<%= i %>" />
+              <div class="edit-grid">
+                <div class="form-field"><label class="field-label">Inicio</label><input type="time" name="inicio" class="input" value="<%= b.inicio %>" required /></div>
+                <div class="form-field"><label class="field-label">Fin</label><input type="time" name="fin" class="input" value="<%= b.fin %>" required /></div>
+              </div>
+              <div class="form-field" style="margin-bottom:.4rem">
+                <label class="field-label">Nombre</label>
+                <input type="text" name="bloque" class="input" value="<%= b.bloque %>" required />
+              </div>
+              <div class="form-field" style="margin-bottom:.55rem">
+                <label class="field-label">Categoría</label>
+                <select name="categoria" class="input">
+                  <% Object.keys(categorias).forEach(function(k) { %>
+                  <option value="<%= k %>" <%= cat===k?'selected':'' %>><%= categorias[k].label %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div style="display:flex;gap:.4rem">
+                <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEdit('<%= diaSeleccionado %>-<%= i %>')">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+
+      <!-- Distribución por categoría -->
+      <div style="margin-top:.85rem;padding-top:.75rem;border-top:1px solid var(--border)">
+        <div class="sec-lbl">Distribución · <%= totalHoras %></div>
+        <% Object.keys(catMap).forEach(function(c) {
+          var pct = totalMins > 0 ? Math.round(catMap[c]/totalMins*100) : 0;
+          var col = CAT_COLORS[c] || '#64748b';
+          var lbl = categorias[c] ? categorias[c].label : c;
+        %>
+        <div class="cat-row">
+          <span class="cat-label"><%= lbl %></span>
+          <div class="prog-strip"><div class="prog-fill" style="width:<%= pct %>%;background:<%= col %>"></div></div>
+          <span class="cat-time"><%= durLabel(catMap[c]) %></span>
+        </div>
+        <% }); %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- RIGHT: Timeline de hoy + semana -->
+  <div style="display:flex;flex-direction:column;gap:.85rem">
+
+    <!-- Timeline hoy -->
+    <div class="card">
+      <div class="card-header" style="margin-bottom:.65rem">
+        <h2 class="card-title">⏱ Hoy</h2>
+        <span id="hora-actual" style="font-family:var(--font-mono);font-size:.82rem;color:var(--accent)"></span>
+      </div>
+
+      <% if (totalHoy > 0) { %>
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.65rem">
+        <div class="prog-strip">
+          <div class="prog-fill" id="progresoBarra2" style="width:<%= pctHoy %>%;background:<%= pctHoy>=80?'#22c55e':pctHoy>=50?'var(--accent)':'#ef4444' %>"></div>
+        </div>
+        <span id="progresoPct2" style="font-family:var(--font-mono);font-size:.7rem;color:var(--text-muted);white-space:nowrap"><%= pctHoy %>%</span>
+      </div>
+      <% } %>
+
+      <div id="timeline-hoy" style="display:flex;flex-direction:column;gap:.25rem"></div>
+
+      <% if (totalHoy === 0) { %>
+      <p style="font-size:.8rem;color:var(--text-muted);text-align:center;padding:.5rem 0">Sin bloques hoy · <a href="/rutina?dia=<%= diaHoy %>" style="color:var(--accent)">Agregar →</a></p>
+      <% } %>
+    </div>
+
+    <!-- Semana -->
+    <div class="card">
+      <div class="card-header" style="margin-bottom:.65rem">
+        <h2 class="card-title">📊 Esta semana</h2>
+      </div>
+      <div class="week-grid">
+        <%
+          var DIAS_ORDEN = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+          var DIAS_LABEL_MAP = {lunes:'Lun',martes:'Mar',miercoles:'Mié',jueves:'Jue',viernes:'Vie',sabado:'Sáb',domingo:'Dom'};
+          DIAS_ORDEN.forEach(function(d) {
+            var bloques = rutina[d] || [];
+            var total   = bloques.length;
+            var wComp   = (typeof weekCompletions !== 'undefined' && weekCompletions[d]) ? weekCompletions[d] : [];
+            var done    = bloques.filter(function(b){ return wComp.includes(d+'|'+b.inicio); }).length;
+            var pct     = total > 0 ? Math.round(done/total*100) : 0;
+            var wDates  = typeof weekDates !== 'undefined' ? weekDates : {};
+            var esHoy2  = wDates[d] === today;
+        %>
+        <div class="week-row2 <%= esHoy2?'es-hoy':'' %>">
+          <a href="/rutina?dia=<%= d %>" style="color:<%= esHoy2?'var(--accent)':'' %>;font-weight:<%= esHoy2?'700':'400' %>"><%= DIAS_LABEL_MAP[d] %><% if(esHoy2){ %> <span style="font-size:.58rem;opacity:.7">hoy</span><% } %></a>
+          <% if (total === 0) { %>
+          <span style="font-size:.7rem;color:var(--text-muted);flex:1">—</span>
+          <% } else { %>
+          <div class="prog-strip" style="flex:1"><div class="prog-fill" style="width:<%= pct %>%;background:<%= pct===100?'#22c55e':pct>=50?'var(--accent)':'#ef4444' %>"></div></div>
+          <span style="font-family:var(--font-mono);font-size:.68rem;color:var(--text-muted);white-space:nowrap;margin-left:.3rem"><%= done %>/<%= total %></span>
+          <% } %>
+          <div style="display:flex;gap:2px;flex-shrink:0;margin-left:.3rem">
+            <% bloques.forEach(function(b) {
+              var bKey=d+'|'+b.inicio;
+              var bDone=wComp.includes(bKey);
+              var bc=CAT_COLORS[b.categoria||'general']||'#64748b';
+            %>
+            <span style="width:6px;height:6px;border-radius:50%;background:<%= bDone?bc:'var(--border)' %>"></span>
+            <% }); %>
+          </div>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL AGREGAR -->
+<div class="modal-overlay" id="modal-agregar" onclick="closeOnOverlay(event,'modal-agregar')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>+ Bloque — <%= diasLabel[dias.indexOf(diaSeleccionado)] %></h3>
+      <button onclick="toggleModal('modal-agregar')" class="modal-close">✕</button>
+    </div>
+    <form action="/rutina/agregar-bloque" method="POST" class="modal-form">
+      <input type="hidden" name="dia" value="<%= diaSeleccionado %>" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+        <div class="form-field"><label class="field-label">Inicio</label><input type="time" name="inicio" class="input" required autofocus /></div>
+        <div class="form-field"><label class="field-label">Fin</label><input type="time" name="fin" class="input" required /></div>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Nombre</label>
+        <input type="text" name="bloque" class="input" placeholder="Ej: Trabajo profundo, Ejercicio..." required />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Categoría</label>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.35rem">
+          <% Object.keys(categorias).forEach(function(k) {
+            var col = CAT_COLORS[k] || '#64748b';
+          %>
+          <label style="display:flex;align-items:center;gap:.3rem;padding:.35rem .45rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:.75rem;transition:all .15s"
+            onmouseover="this.style.borderColor='<%= col %>'" onmouseout="this.style.borderColor='var(--border)'">
+            <input type="radio" name="categoria" value="<%= k %>" <%= k==='general'?'checked':'' %> style="accent-color:<%= col %>" />
+            <span style="color:<%= col %>">●</span> <%= categorias[k].label %>
+          </label>
+          <% }); %>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-agregar')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">+ Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var DIAS_KEY      = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+var rutinaData    = <%- JSON.stringify(rutina) %>;
+var today         = '<%= today %>';
+var completionsSet = new Set(<%- JSON.stringify(completions) %>);
+var CAT_COLORS_JS = <%- JSON.stringify(CAT_COLORS) %>;
+
+// toggleModal, closeOnOverlay defined globally in header
+function togglePanel(id) { var el=document.getElementById(id); if(el) el.style.display=el.style.display==='none'?'block':'none'; }
+function toggleEdit(id)  { var el=document.getElementById('edit-'+id); if(el) el.classList.toggle('open'); }
+
+// Toggle completion
+function toggleComp(bKey, dia, idx) {
+  fetch('/rutina/toggle-completion', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ fecha: today, bloqueKey: bKey })
+  }).then(function(r){return r.json();}).then(function(data){
+    if (data.done) completionsSet.add(bKey); else completionsSet.delete(bKey);
+    var chk = document.getElementById('bchk-'+dia+'-'+idx);
+    var row = document.getElementById('brow-'+dia+'-'+idx);
+    if (chk) { chk.className='bloque-check'+(data.done?' done':''); chk.textContent=data.done?'✓':''; }
+    if (row) { row.classList.toggle('completado', data.done); }
+    actualizarProgreso();
+    renderTimeline();
+  });
+}
+
+function eliminarBloque(dia, idx) {
+  apiFetch('/rutina/eliminar-bloque', {
+    method: 'POST',
+    body: { dia: dia, index: idx }
+  }).then(function() {
+    showToast('Bloque eliminado', 'warning');
+    setTimeout(function() { window.location.reload(); }, 700);
+  });
+}
+
+// Timeline
+function renderTimeline() {
+  var now    = new Date();
+  var diaKey = DIAS_KEY[now.getDay()];
+  var bloques = rutinaData[diaKey] || [];
+  var min    = now.getHours()*60 + now.getMinutes();
+  var tl     = document.getElementById('timeline-hoy');
+  if (!tl) return;
+  tl.innerHTML = '';
+
+  bloques.forEach(function(b) {
+    var hI   = parseInt(b.inicio.split(':')[0])*60+parseInt(b.inicio.split(':')[1]);
+    var hF   = parseInt(b.fin.split(':')[0])*60+parseInt(b.fin.split(':')[1]);
+    var activo = min>=hI && min<hF;
+    var pasado = min>=hF;
+    var bKey   = diaKey+'|'+b.inicio;
+    var done   = completionsSet.has(bKey);
+    var color  = CAT_COLORS_JS[b.categoria||'general']||'#64748b';
+    var dur    = (hF-hI)>0?((hF-hI)<60?(hF-hI)+'min':Math.floor((hF-hI)/60)+'h'+((hF-hI)%60?((hF-hI)%60)+'m':'')):'' ;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'tl-block'+(activo?' tl-activo':'')+(pasado&&!activo?' tl-pasado':'');
+    wrap.style.borderLeftColor = color;
+    wrap.style.borderLeftWidth = '3px';
+
+    // check
+    var chk = document.createElement('div');
+    chk.className = 'tl-check2'+(done?' done':'');
+    chk.textContent = done?'✓':'';
+    chk.addEventListener('click', (function(k){return function(){
+      fetch('/rutina/toggle-completion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fecha:today,bloqueKey:k})})
+        .then(function(r){return r.json();}).then(function(d){
+          if(d.done) completionsSet.add(k); else completionsSet.delete(k);
+          actualizarProgreso(); renderTimeline();
+        });
+    };})(bKey));
+
+    // hora
+    var hora = document.createElement('div'); hora.className='tl-hora'; hora.textContent=b.inicio+'–'+b.fin;
+
+    // nombre
+    var nom = document.createElement('div'); nom.className='tl-nom';
+    if (activo) {
+      var nowBadge=document.createElement('span'); nowBadge.className='bloque-now'; nowBadge.textContent='Ahora'; nom.appendChild(nowBadge);
+      nom.appendChild(document.createTextNode(' '+b.bloque));
+    } else {
+      nom.textContent = b.bloque;
+      if (done) { nom.style.textDecoration='line-through'; nom.style.opacity='.5'; }
+    }
+
+    // dur
+    var durEl = document.createElement('span'); durEl.style.cssText='font-family:var(--font-mono);font-size:.6rem;color:var(--text-muted);flex-shrink:0'; durEl.textContent=dur;
+
+    wrap.appendChild(chk); wrap.appendChild(hora); wrap.appendChild(nom); wrap.appendChild(durEl);
+    tl.appendChild(wrap);
+  });
+}
+
+function actualizarProgreso() {
+  var diaKey = DIAS_KEY[new Date().getDay()];
+  var bloques = rutinaData[diaKey]||[];
+  var total = bloques.length;
+  var done  = bloques.filter(function(b){return completionsSet.has(diaKey+'|'+b.inicio);}).length;
+  var pct   = total>0?Math.round(done/total*100):0;
+  var color = pct>=80?'#22c55e':pct>=50?'var(--accent)':'#ef4444';
+  ['progresoBarra','progresoBarra2'].forEach(function(id){
+    var el=document.getElementById(id); if(el){el.style.width=pct+'%'; el.style.background=color;}
+  });
+  ['progresoPct','progresoPct2'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.textContent=pct+'%';
+  });
+  var hdrDone=document.getElementById('hdr-done'); if(hdrDone) hdrDone.textContent=done;
+  var hdrPct=document.getElementById('hdr-pct');   if(hdrPct)  hdrPct.textContent=pct+'%';
+}
+
+function actualizarVista() {
+  var now    = new Date();
+  var diaKey = DIAS_KEY[now.getDay()];
+  var bloques = rutinaData[diaKey]||[];
+  var min    = now.getHours()*60+now.getMinutes();
+
+  var horaEl = document.getElementById('hora-actual');
+  if (horaEl) horaEl.textContent = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  var actual = bloques.find(function(b){
+    var hI=parseInt(b.inicio.split(':')[0])*60+parseInt(b.inicio.split(':')[1]);
+    var hF=parseInt(b.fin.split(':')[0])*60+parseInt(b.fin.split(':')[1]);
+    return min>=hI && min<hF;
+  });
+  var badge = document.getElementById('bloqueActual');
+  if (badge) badge.textContent = actual ? '▶ '+actual.bloque : '';
+
+  renderTimeline();
+}
+
+actualizarVista();
+setInterval(actualizarVista, 30000);
+</script>
+
+<%- include('partials/footer') %>

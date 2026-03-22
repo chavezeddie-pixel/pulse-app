@@ -1,0 +1,596 @@
+<%- include('partials/header') %>
+
+<style>
+/* ═══════════════════════════
+   CHECK-IN DIARIO
+═══════════════════════════ */
+.ci-layout { display:grid; grid-template-columns:1fr 300px; gap:1.25rem; align-items:start; }
+@media(max-width:800px){ .ci-layout { grid-template-columns:1fr; } }
+.ci-sidebar { position:sticky; top:1rem; display:flex; flex-direction:column; gap:.85rem; }
+
+/* Mood picker */
+.mood-picker { display:flex; gap:.4rem; justify-content:center; flex-wrap:wrap; margin-bottom:1rem; }
+.mood-btn {
+  width:50px; height:50px; border-radius:12px; border:2px solid var(--border);
+  background:var(--surface); cursor:pointer; font-size:1.5rem; display:flex;
+  align-items:center; justify-content:center; transition:all .15s; flex-shrink:0;
+}
+.mood-btn:hover { border-color:var(--accent); transform:scale(1.1); }
+.mood-btn.active { border-color:var(--accent); background:var(--accent-dim); transform:scale(1.15); box-shadow:0 0 0 3px var(--accent-dim); }
+.mood-label { font-size:.62rem; color:var(--text-muted); text-align:center; margin-top:.5rem; }
+
+/* Slider groups */
+.sl-group { margin-bottom:1.1rem; }
+.sl-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.5rem; }
+.sl-name { font-size:.72rem; text-transform:uppercase; letter-spacing:.09em; color:var(--text-muted); font-weight:600; }
+.sl-badge { display:flex; align-items:center; gap:.4rem; }
+.sl-emoji { font-size:1.15rem; line-height:1; transition:all .2s; }
+.sl-num { font-family:var(--font-mono); font-size:1rem; font-weight:700; min-width:26px; text-align:right; }
+
+.sl-track-wrap { position:relative; height:8px; border-radius:99px; margin:.3rem 0; }
+.sl-track-bg   { position:absolute; inset:0; border-radius:99px; background:var(--surface); }
+.sl-track-fill { position:absolute; top:0; left:0; height:100%; border-radius:99px; transition:width .08s; }
+input[type=range].sl {
+  position:absolute; inset:0; width:100%; margin:0; padding:0;
+  -webkit-appearance:none; appearance:none;
+  background:transparent; cursor:pointer; height:8px;
+}
+input[type=range].sl::-webkit-slider-thumb {
+  -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+  background:#fff; border:2.5px solid; box-shadow:0 2px 6px rgba(0,0,0,.3);
+  transition:transform .15s;
+}
+input[type=range].sl:hover::-webkit-slider-thumb { transform:scale(1.2); }
+input[type=range].sl:active::-webkit-slider-thumb { transform:scale(1.3); }
+input[type=range].sl::-moz-range-thumb {
+  width:20px; height:20px; border-radius:50%;
+  background:#fff; border:2.5px solid; box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+.sl-scale { display:flex; justify-content:space-between; margin-top:.35rem; }
+.sl-scale span { font-size:.58rem; color:var(--text-muted); }
+
+/* Toggle cards */
+.tc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.5rem; }
+@media(max-width:500px){ .tc-grid { grid-template-columns:1fr; } }
+.tc {
+  display:flex; flex-direction:column; align-items:center; gap:.4rem; padding:.85rem .5rem;
+  background:var(--surface); border:2px solid var(--border); border-radius:14px;
+  cursor:pointer; transition:all .18s; text-align:center; user-select:none;
+}
+.tc:hover { border-color:var(--accent); }
+.tc.checked { background:var(--accent-dim); border-color:var(--accent); }
+.tc input { display:none; }
+.tc .tc-icon  { font-size:1.8rem; line-height:1; }
+.tc .tc-label { font-size:.72rem; color:var(--text-muted); line-height:1.3; }
+.tc.checked .tc-label { color:var(--accent); font-weight:600; }
+.tc .tc-check { width:20px; height:20px; border-radius:50%; border:2px solid var(--border-2);
+  display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:800; }
+.tc.checked .tc-check { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* Sleep */
+.sleep-input { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; background:var(--surface); border:1px solid var(--border); border-radius:12px; }
+.sleep-icon { font-size:1.5rem; flex-shrink:0; }
+.sleep-label { font-size:.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.07em; margin-bottom:.15rem; }
+.sleep-controls { display:flex; align-items:center; gap:.55rem; }
+.sleep-btn { width:30px; height:30px; border-radius:8px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--text); font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .12s; }
+.sleep-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+.sleep-val { font-family:var(--font-mono); font-size:1.15rem; font-weight:700; min-width:38px; text-align:center; }
+
+/* Score ring */
+.score-ring-wrap  { position:relative; }
+.score-ring-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; line-height:1; }
+.score-ring-num { font-family:var(--font-mono); font-size:2.2rem; font-weight:700; }
+.score-ring-lbl { font-size:.62rem; color:var(--text-muted); margin-top:.2rem; }
+
+/* Sparkline */
+.spark-wrap { display:flex; align-items:flex-end; gap:3px; height:36px; padding:0 .5rem; }
+.spark-bar  { flex:1; border-radius:3px 3px 0 0; min-height:2px; transition:height .3s; }
+.spark-dot-none { flex:1; border-radius:3px; background:var(--surface); height:4px; }
+
+/* vs Ayer */
+.ayer-item { display:flex; align-items:center; gap:.5rem; padding:.4rem 0; border-bottom:1px solid var(--border); font-size:.8rem; }
+.ayer-item:last-child { border-bottom:none; }
+.ayer-label { color:var(--text-muted); width:58px; flex-shrink:0; font-size:.72rem; }
+.ayer-bars  { flex:1; display:flex; flex-direction:column; gap:2px; }
+.ayer-bar-row { display:flex; align-items:center; gap:.3rem; font-size:.62rem; }
+.ayer-bar-track { flex:1; height:4px; background:var(--surface); border-radius:99px; overflow:hidden; }
+.ayer-bar-fill  { height:100%; border-radius:99px; }
+.ayer-delta { font-family:var(--font-mono); font-size:.72rem; min-width:28px; text-align:right; flex-shrink:0; }
+.delta-pos  { color:#22c55e; }
+.delta-neg  { color:#ef4444; }
+.delta-neu  { color:var(--text-muted); }
+
+/* Hábitos del día */
+.hab-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:.4rem; }
+.hab-item {
+  display:flex; align-items:center; gap:.4rem; padding:.4rem .55rem;
+  background:var(--surface); border:1px solid var(--border); border-radius:8px;
+  cursor:pointer; transition:all .15s; font-size:.75rem; user-select:none;
+}
+.hab-item:hover { border-color:var(--accent); }
+.hab-item.done { background:var(--accent-dim); border-color:var(--accent); }
+.hab-item.done .hab-name { color:var(--accent); }
+.hab-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.hab-name { flex:1; }
+.hab-tick { font-size:.7rem; font-weight:800; color:var(--accent); }
+
+/* Save btn */
+.save-btn-wrap { position:relative; }
+.btn-save { min-width:160px; position:relative; overflow:hidden; }
+.btn-save.saving { opacity:.7; pointer-events:none; }
+.btn-save.saved  { background:#22c55e!important; border-color:#22c55e!important; }
+
+/* Racha badge */
+.racha-strip { display:flex; align-items:center; justify-content:center; gap:.5rem; padding:.6rem; background:var(--surface); border-radius:10px; }
+.racha-num { font-family:var(--font-mono); font-size:1.4rem; font-weight:700; color:#f59e0b; }
+</style>
+
+<%
+var tc   = checkin;
+var ayer = locals.checkinAyer;
+var _u7  = locals.ultimos7 || [];
+var _racha = locals.racha || 0;
+var _habHoy = locals.habitosHoy || [];
+
+var sliders = [
+  { name:'energy',  label:'Energía',        color:'#f59e0b', val: tc?tc.energy:5,
+    emojis:['😴','😴','😪','😐','😐','🙂','🙂','😊','⚡','⚡'],
+    lo:'Sin fuerza', hi:'Lleno de energía' },
+  { name:'mood',    label:'Ánimo',           color:'#a78bfa', val: tc?tc.mood:5,
+    emojis:['😢','😢','😔','😐','😐','🙂','😊','😊','😄','🤩'],
+    lo:'Muy bajo', hi:'Excelente' },
+  { name:'clarity', label:'Claridad mental', color:'#38bdf8', val: tc?tc.clarity:5,
+    emojis:['🌫️','🌫️','😵','😵‍💫','🤔','🤔','💡','💡','🧠','🔥'],
+    lo:'Mente nublada', hi:'Muy enfocado' },
+  { name:'anxiety', label:'Ansiedad',        color:'#ef4444', val: tc?tc.anxiety:3,
+    emojis:['😌','😌','🙂','😐','😐','😟','😰','😰','😱','🆘'],
+    lo:'Tranquilo', hi:'Muy ansioso' },
+];
+%>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📋 Chequeo Diario</h1>
+    <p class="page-subtitle"><%= date %></p>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+    <% if (tc) { %><span class="badge badge-green">✓ Ya registrado</span><% } %>
+    <a href="/" class="btn btn-ghost btn-sm">← Dashboard</a>
+  </div>
+</div>
+
+<div class="ci-layout">
+
+  <!-- ══ FORMULARIO ══ -->
+  <div>
+    <form id="ci-form">
+      <input type="hidden" name="date" value="<%= date %>" />
+
+      <!-- Mood picker rápido -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header" style="margin-bottom:.75rem">
+          <h2 class="card-title">😊 ¿Cómo estás ahora mismo?</h2>
+        </div>
+        <div class="mood-picker">
+          <% var moods = [
+            {v:1, e:'😩', l:'Muy mal'},
+            {v:3, e:'😔', l:'Mal'},
+            {v:5, e:'😐', l:'Regular'},
+            {v:7, e:'🙂', l:'Bien'},
+            {v:9, e:'😄', l:'Muy bien'},
+            {v:10,e:'🔥', l:'Increíble'},
+          ]; %>
+          <% moods.forEach(function(m) { %>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem">
+            <button type="button" class="mood-btn <%= tc && tc.mood===m.v?'active':'' %>"
+              onclick="setMood(<%= m.v %>,'<%= m.e %>')" title="<%= m.l %>">
+              <%= m.e %>
+            </button>
+            <span style="font-size:.58rem;color:var(--text-muted)"><%= m.l %></span>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Sliders -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><h2 class="card-title">⚡ Estado del día</h2></div>
+
+        <% sliders.forEach(function(s){ %>
+        <div class="sl-group">
+          <div class="sl-header">
+            <span class="sl-name"><%= s.label %></span>
+            <div class="sl-badge">
+              <span class="sl-emoji" id="emoji-<%= s.name %>"><%= s.emojis[Math.round(s.val)-1] %></span>
+              <span class="sl-num" id="val-<%= s.name %>" style="color:<%= s.color %>"><%= s.val %></span>
+            </div>
+          </div>
+          <div class="sl-track-wrap">
+            <div class="sl-track-bg"></div>
+            <div class="sl-track-fill" id="fill-<%= s.name %>"
+              style="background:<%= s.color %>;width:<%= Math.round((s.val-1)/9*100) %>%;opacity:.65"></div>
+            <input type="range" class="sl" name="<%= s.name %>" id="sl-<%= s.name %>"
+              min="1" max="10" step="1" value="<%= s.val %>"
+              style="border-color:<%= s.color %>"
+              oninput="updateSlider('<%= s.name %>',this.value,<%- JSON.stringify(s.emojis) %>,'<%= s.color %>')" />
+          </div>
+          <div class="sl-scale">
+            <span><%= s.lo %></span>
+            <span>1 2 3 4 5 6 7 8 9 10</span>
+            <span><%= s.hi %></span>
+          </div>
+        </div>
+        <% }); %>
+
+        <!-- Sueño -->
+        <div style="margin-top:.5rem">
+          <div class="sl-name" style="margin-bottom:.5rem">😴 Horas de sueño</div>
+          <div class="sleep-input">
+            <div class="sleep-icon" id="sleep-emoji"><%= (tc?tc.sleep_hours:7)<6?'😫':(tc?tc.sleep_hours:7)<7?'😪':(tc?tc.sleep_hours:7)<8?'🙂':'😴' %></div>
+            <div style="flex:1">
+              <div class="sleep-label">Dormí</div>
+              <div class="sleep-controls">
+                <button type="button" class="sleep-btn" onclick="changeSleep(-0.5)">−</button>
+                <span class="sleep-val" id="sleep-display"><%= tc?tc.sleep_hours:7 %>h</span>
+                <button type="button" class="sleep-btn" onclick="changeSleep(0.5)">+</button>
+                <input type="hidden" name="sleep_hours" id="sl-sleep_hours" value="<%= tc?tc.sleep_hours:7 %>" />
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:#38bdf8" id="sleep-big"><%= tc?tc.sleep_hours:7 %></div>
+              <div style="font-size:.62rem;color:var(--text-muted)">horas</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><h2 class="card-title">✅ ¿Qué hiciste hoy?</h2></div>
+        <div class="tc-grid">
+          <% [
+            {name:'did_exercise',   icon:'💪', label:'Hice ejercicio',       checked: tc&&tc.did_exercise},
+            {name:'did_study',      icon:'📚', label:'Estudié / aprendí',    checked: tc&&tc.did_study},
+            {name:'completed_main', icon:'⭐', label:'Cumplí bloque principal', checked: tc&&tc.completed_main},
+          ].forEach(function(t){ %>
+          <label class="tc <%= t.checked?'checked':'' %>" id="card-<%= t.name %>" onclick="toggleCard('<%= t.name %>')">
+            <input type="checkbox" name="<%= t.name %>" value="on" <%= t.checked?'checked':'' %> id="cb-<%= t.name %>" />
+            <span class="tc-icon"><%= t.icon %></span>
+            <span class="tc-label"><%= t.label %></span>
+            <span class="tc-check" id="tick-<%= t.name %>"><%= t.checked?'✓':'' %></span>
+          </label>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Hábitos del día -->
+      <% if (_habHoy.length > 0) { %>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header">
+          <h2 class="card-title">🔄 Hábitos de hoy</h2>
+          <span style="font-family:var(--font-mono);font-size:.72rem;color:var(--text-muted)" id="hab-prog-lbl">
+            <%= _habHoy.filter(function(h){return h.done}).length %>/<%= _habHoy.length %>
+          </span>
+        </div>
+        <div class="hab-grid">
+          <% _habHoy.forEach(function(h) { %>
+          <div class="hab-item <%= h.done?'done':'' %>" id="habitem-<%= h.id %>" onclick="toggleHabito(<%= h.id %>,'<%= date %>')">
+            <div class="hab-dot" style="background:<%= h.color||'var(--accent)' %>"></div>
+            <span class="hab-name"><%= h.name %></span>
+            <span class="hab-tick" id="habtick-<%= h.id %>"><%= h.done?'✓':'' %></span>
+          </div>
+          <% }); %>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Reflexión -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-header"><h2 class="card-title">💭 Reflexión</h2></div>
+        <div class="form-field" style="margin-bottom:.85rem">
+          <label class="field-label">¿Qué hiciste bien hoy?</label>
+          <textarea name="did_well" rows="2" class="textarea"
+            placeholder="Al menos una cosa positiva..."><%= tc?tc.did_well:'' %></textarea>
+        </div>
+        <div class="form-field" style="margin-bottom:.85rem">
+          <label class="field-label">¿Qué mejorar mañana?</label>
+          <textarea name="improve_tomorrow" rows="2" class="textarea"
+            placeholder="Una cosa concreta y específica..."><%= tc?tc.improve_tomorrow:'' %></textarea>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Comentario libre</label>
+          <textarea name="free_comment" rows="3" class="textarea"
+            placeholder="Pensamientos, contexto del día..."><%= tc?tc.free_comment:'' %></textarea>
+        </div>
+      </div>
+
+      <!-- Guardar -->
+      <div class="form-actions">
+        <a href="/" class="btn btn-ghost">Cancelar</a>
+        <button type="button" class="btn btn-primary btn-save" id="btn-save" onclick="guardarCheckin()">
+          <%= tc?'💾 Actualizar':'✓ Guardar chequeo' %>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="ci-sidebar">
+
+    <!-- Score en vivo -->
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">🎯 Bienestar en vivo</h2></div>
+      <div style="display:flex;flex-direction:column;align-items:center;padding:.5rem 0">
+        <div class="score-ring-wrap" style="margin-bottom:.65rem">
+          <svg width="110" height="110" viewBox="0 0 110 110">
+            <circle cx="55" cy="55" r="46" fill="none" stroke="var(--border)" stroke-width="8"/>
+            <circle id="score-arc" cx="55" cy="55" r="46" fill="none"
+              stroke="var(--accent)" stroke-width="8"
+              stroke-dasharray="289.0" stroke-dashoffset="289.0"
+              stroke-linecap="round" transform="rotate(-90 55 55)"/>
+          </svg>
+          <div class="score-ring-center">
+            <div class="score-ring-num" id="score-live" style="color:var(--accent)">—</div>
+            <div class="score-ring-lbl">/ 100</div>
+          </div>
+        </div>
+        <div id="score-label" style="font-size:.88rem;font-weight:600;text-align:center"></div>
+        <div id="score-tip"   style="font-size:.7rem;color:var(--text-muted);text-align:center;margin-top:.3rem;max-width:200px;line-height:1.45"></div>
+      </div>
+
+      <!-- Mini bars -->
+      <div style="border-top:1px solid var(--border);padding-top:.7rem;display:flex;flex-direction:column;gap:.35rem">
+        <% sliders.forEach(function(s){ %>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:.67rem;color:var(--text-muted);width:55px;flex-shrink:0"><%= s.label.split(' ')[0] %></span>
+          <div style="flex:1;height:4px;background:var(--surface);border-radius:99px;overflow:hidden">
+            <div id="mini-fill-<%= s.name %>" style="height:100%;border-radius:99px;background:<%= s.color %>;width:<%= Math.round((s.val-1)/9*100) %>%;transition:width .2s"></div>
+          </div>
+          <span id="mini-val-<%= s.name %>" style="font-size:.7rem;font-family:var(--font-mono);color:<%= s.color %>;width:16px;text-align:right"><%= s.val %></span>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+
+    <!-- Racha + Sparkline -->
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">📈 Últimos 7 días</h2></div>
+
+      <!-- Sparkline -->
+      <div class="spark-wrap" style="margin-bottom:.65rem">
+        <% _u7.forEach(function(d) { %>
+        <% if (d.score !== null) { %>
+        <div class="spark-bar" title="<%= d.date %>: <%= d.score %>"
+          style="height:<%= d.score %>%;background:<%= d.score>=70?'#22c55e':d.score>=50?'var(--accent)':'#ef4444' %>"></div>
+        <% } else { %>
+        <div class="spark-dot-none" title="<%= d.date %>: sin registro"></div>
+        <% } %>
+        <% }); %>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:.58rem;color:var(--text-muted);padding:0 .5rem;margin-bottom:.75rem">
+        <span><%= _u7[0]?_u7[0].date.slice(5).replace('-','/'):'' %></span>
+        <span>Hoy</span>
+      </div>
+
+      <!-- Racha -->
+      <div class="racha-strip">
+        <span style="font-size:1.4rem">🔥</span>
+        <div>
+          <span class="racha-num"><%= _racha %></span>
+          <span style="font-size:.75rem;color:var(--text-muted)"> día<%= _racha!==1?'s':'' %> seguido<%= _racha!==1?'s':'' %></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vs Ayer -->
+    <% if (ayer) { %>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">📊 vs. Ayer</h2>
+        <span style="font-size:.65rem;color:var(--text-muted)"><%= ayer.date %></span>
+      </div>
+      <%
+        var comparar = [
+          {label:'Energía',  hoy: tc?tc.energy:5,      ant: ayer.energy,      color:'#f59e0b', inv:false},
+          {label:'Ánimo',    hoy: tc?tc.mood:5,         ant: ayer.mood,        color:'#a78bfa', inv:false},
+          {label:'Claridad', hoy: tc?tc.clarity:5,      ant: ayer.clarity,     color:'#38bdf8', inv:false},
+          {label:'Ansiedad', hoy: tc?tc.anxiety:3,      ant: ayer.anxiety,     color:'#ef4444', inv:true},
+          {label:'Sueño',    hoy: tc?tc.sleep_hours:7,  ant: ayer.sleep_hours, color:'#22c55e', inv:false, max:12},
+        ];
+      %>
+      <% comparar.forEach(function(r){
+        var delta = Math.round((r.hoy - r.ant) * 10) / 10;
+        var good  = r.inv ? delta < 0 : delta > 0;
+        var cls   = delta===0?'delta-neu':(good?'delta-pos':'delta-neg');
+        var sign  = delta > 0 ? '+' : '';
+        var max   = r.max || 10;
+      %>
+      <div class="ayer-item">
+        <span class="ayer-label"><%= r.label %></span>
+        <div class="ayer-bars">
+          <div class="ayer-bar-row">
+            <span style="color:var(--text-muted);width:22px;flex-shrink:0">Hoy</span>
+            <div class="ayer-bar-track"><div class="ayer-bar-fill" id="ayerbar-<%= r.label %>" style="width:<%= Math.round(r.hoy/max*100) %>%;background:<%= r.color %>"></div></div>
+            <span style="font-family:var(--font-mono);width:20px;text-align:right;color:<%= r.color %>" id="ayerval-<%= r.label %>"><%= r.hoy %></span>
+          </div>
+          <div class="ayer-bar-row">
+            <span style="color:var(--text-muted);width:22px;flex-shrink:0">Ayer</span>
+            <div class="ayer-bar-track"><div class="ayer-bar-fill" style="width:<%= Math.round(r.ant/max*100) %>%;background:<%= r.color %>;opacity:.35"></div></div>
+            <span style="font-family:var(--font-mono);width:20px;text-align:right;color:var(--text-muted)"><%= r.ant %></span>
+          </div>
+        </div>
+        <span class="ayer-delta <%= cls %>"><%= sign %><%= delta %></span>
+      </div>
+      <% }); %>
+
+      <!-- Acciones ayer vs hoy -->
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border)">
+        <% [
+          {key:'did_exercise',   label:'💪', hoy:tc&&tc.did_exercise,   ant:ayer.did_exercise},
+          {key:'did_study',      label:'📚', hoy:tc&&tc.did_study,      ant:ayer.did_study},
+          {key:'completed_main', label:'⭐', hoy:tc&&tc.completed_main, ant:ayer.completed_main},
+        ].forEach(function(a){ %>
+        <div style="font-size:.72rem;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:.25rem .45rem;display:flex;gap:.25rem;align-items:center">
+          <span><%= a.label %></span>
+          <span style="color:<%= a.ant?'#22c55e':'#ef4444' %>"><%= a.ant?'✓':'✗' %></span>
+          <span style="color:var(--text-muted)">→</span>
+          <span id="acc-<%= a.key %>" style="color:<%= a.hoy?'#22c55e':'var(--text-muted)' %>"><%= a.hoy?'✓':'—' %></span>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } else { %>
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">📊 vs. Ayer</h2></div>
+      <p style="font-size:.8rem;color:var(--text-muted);text-align:center;padding:.5rem 0">Sin registro de ayer</p>
+    </div>
+    <% } %>
+
+  </div><!-- end sidebar -->
+</div>
+
+<script>
+var _sleepVal = <%= tc?tc.sleep_hours:7 %>;
+
+function updateSlider(name, val, emojis, color) {
+  document.getElementById('val-' + name).textContent = val;
+  var eEl = document.getElementById('emoji-' + name);
+  if (emojis && eEl) {
+    var idx = Math.min(Math.round(parseFloat(val)) - 1, emojis.length - 1);
+    eEl.textContent = emojis[idx] || '';
+  }
+  var fill = document.getElementById('fill-' + name);
+  if (fill) fill.style.width = Math.round((val-1)/9*100) + '%';
+  var mf = document.getElementById('mini-fill-' + name);
+  if (mf) mf.style.width = Math.round((val-1)/9*100) + '%';
+  var mv = document.getElementById('mini-val-' + name);
+  if (mv) mv.textContent = val;
+  calcScore();
+  // Update vs ayer bar live
+  var bar = document.getElementById('ayerbar-' + (name==='energy'?'Energía':name==='mood'?'Ánimo':name==='clarity'?'Claridad':'Ansiedad'));
+  var valEl = document.getElementById('ayerval-' + (name==='energy'?'Energía':name==='mood'?'Ánimo':name==='clarity'?'Claridad':'Ansiedad'));
+  if (bar) bar.style.width = Math.round(parseFloat(val)/10*100) + '%';
+  if (valEl) valEl.textContent = val;
+}
+
+function changeSleep(delta) {
+  _sleepVal = Math.max(2, Math.min(12, parseFloat((_sleepVal + delta).toFixed(1))));
+  document.getElementById('sl-sleep_hours').value = _sleepVal;
+  document.getElementById('sleep-display').textContent = _sleepVal + 'h';
+  document.getElementById('sleep-big').textContent = _sleepVal;
+  var e = _sleepVal < 6 ? '😫' : _sleepVal < 7 ? '😪' : _sleepVal < 8 ? '🙂' : '😴';
+  document.getElementById('sleep-emoji').textContent = e;
+}
+
+function setMood(val, emoji) {
+  document.getElementById('sl-mood').value = val;
+  updateSlider('mood', val, ['😢','😢','😔','😐','😐','🙂','😊','😊','😄','🤩'], '#a78bfa');
+  document.querySelectorAll('.mood-btn').forEach(function(b) { b.classList.remove('active'); });
+  event.currentTarget.classList.add('active');
+}
+
+function calcScore() {
+  var e = parseFloat(document.getElementById('sl-energy').value);
+  var m = parseFloat(document.getElementById('sl-mood').value);
+  var c = parseFloat(document.getElementById('sl-clarity').value);
+  var a = parseFloat(document.getElementById('sl-anxiety').value);
+  var score = Math.min(100, Math.round((e+m+c+(10-a))/4*10));
+
+  var circ = 289.0;
+  var offset = Math.round(circ * (1 - score/100));
+  document.getElementById('score-arc').setAttribute('stroke-dashoffset', offset);
+  document.getElementById('score-live').textContent = score;
+
+  var color = score>=70?'#22c55e':score>=40?'var(--accent)':'#ef4444';
+  document.getElementById('score-arc').setAttribute('stroke', color);
+  document.getElementById('score-live').style.color = color;
+
+  var labels = [
+    ['Muy difícil 😔',  'Prioriza descanso y una sola tarea hoy.'],
+    ['Difícil 😕',      'Ve paso a paso. Una cosa a la vez.'],
+    ['Regular 😐',      'Día normal — enfócate en lo esencial.'],
+    ['Bien 🙂',         'Buen momento para avanzar en proyectos.'],
+    ['Muy bien 😊',     'Usa esta energía en lo más importante.'],
+    ['Excelente 🔥',    'Día de alto rendimiento — aprovéchalo!'],
+  ];
+  var idx = Math.min(Math.floor(score/17), 5);
+  document.getElementById('score-label').textContent = labels[idx][0];
+  document.getElementById('score-tip').textContent   = labels[idx][1];
+}
+
+function toggleCard(name) {
+  var cb   = document.getElementById('cb-' + name);
+  var card = document.getElementById('card-' + name);
+  var tick = document.getElementById('tick-' + name);
+  cb.checked = !cb.checked;
+  card.classList.toggle('checked', cb.checked);
+  tick.textContent = cb.checked ? '✓' : '';
+  var accEl = document.getElementById('acc-' + name);
+  if (accEl) { accEl.textContent = cb.checked?'✓':'—'; accEl.style.color = cb.checked?'#22c55e':'var(--text-muted)'; }
+}
+
+// ── Hábitos quick toggle ──
+function toggleHabito(id, fecha) {
+  var el   = document.getElementById('habitem-' + id);
+  var tick = document.getElementById('habtick-' + id);
+  var done = !el.classList.contains('done');
+  el.classList.toggle('done', done);
+  tick.textContent = done ? '✓' : '';
+
+  fetch('/habitos/' + id + '/log', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded','x-requested-with':'XMLHttpRequest' },
+    body: 'fecha=' + encodeURIComponent(fecha) + '&completed=' + (done?1:0)
+  }).catch(function() {
+    // Rollback on error
+    el.classList.toggle('done', !done);
+    tick.textContent = !done ? '✓' : '';
+  });
+
+  // Update habit counter
+  var doneCount = document.querySelectorAll('.hab-item.done').length;
+  var total     = document.querySelectorAll('.hab-item').length;
+  var lbl = document.getElementById('hab-prog-lbl');
+  if (lbl) lbl.textContent = doneCount + '/' + total;
+}
+
+// ── Guardar con AJAX ──
+function guardarCheckin() {
+  var btn = document.getElementById('btn-save');
+  btn.classList.add('saving');
+  btn.textContent = '⏳ Guardando...';
+
+  var form = document.getElementById('ci-form');
+  var data = new URLSearchParams(new FormData(form)).toString();
+
+  progressStart();
+  fetch('/checkin', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded','x-requested-with':'XMLHttpRequest' },
+    body: data
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    progressDone();
+    btn.classList.remove('saving');
+    btn.classList.add('saved');
+    btn.textContent = '✓ ¡Guardado!';
+    showToast('✓ Check-in guardado', 'success');
+    setTimeout(function() {
+      btn.classList.remove('saved');
+      btn.textContent = '💾 Actualizar';
+    }, 2500);
+  })
+  .catch(function() {
+    progressDone();
+    btn.classList.remove('saving');
+    btn.textContent = '⚠ Error — reintentar';
+  });
+}
+
+calcScore();
+</script>
+
+<%- include('partials/footer') %>

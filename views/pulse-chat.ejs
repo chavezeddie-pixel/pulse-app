@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pulse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      background:#0a0a18;
+      color:#fef9ef;
+      font-family:'DM Sans',system-ui,sans-serif;
+      height:100vh; height:100dvh;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ═══ LOGO AREA ═══ */
+    .pulse-top {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding-top:clamp(2rem,8vh,5rem);
+      flex-shrink:0;
+      transition:padding .6s ease, opacity .6s ease;
+    }
+    .pulse-top.small { padding-top:1rem; }
+
+    .pulse-logo-wrap {
+      position:relative;
+      width:90px; height:90px;
+      transition:all .6s ease;
+    }
+    .pulse-top.small .pulse-logo-wrap {
+      width:40px; height:40px;
+    }
+
+    /* The main logo image */
+    .pulse-logo-img {
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit:contain;
+      border-radius:22%;
+      animation:breathe 4s ease-in-out infinite;
+      z-index:2;
+      filter:drop-shadow(0 0 25px rgba(244,132,95,.25));
+    }
+
+    /* Outer glow rings */
+    .pulse-ring {
+      position:absolute;
+      border-radius:30%;
+      border:1px solid rgba(244,132,95,.08);
+      animation:breatheRing 4s ease-in-out infinite;
+    }
+    .pulse-ring:nth-child(1) { inset:-12px; animation-delay:0s; }
+    .pulse-ring:nth-child(2) { inset:-25px; animation-delay:.4s; }
+    .pulse-ring:nth-child(3) { inset:-40px; animation-delay:.8s; }
+
+    .pulse-top.small .pulse-ring { display:none; }
+
+    /* Glow behind logo */
+    .pulse-glow {
+      position:absolute; inset:-20%;
+      border-radius:30%;
+      background:radial-gradient(circle, rgba(244,132,95,.15) 0%, rgba(249,199,79,.06) 50%, transparent 70%);
+      animation:breatheGlow 4s ease-in-out infinite;
+      z-index:1;
+    }
+    .pulse-top.small .pulse-glow { display:none; }
+
+    @keyframes breathe {
+      0%, 100% { transform:scale(1); filter:drop-shadow(0 0 20px rgba(244,132,95,.2)); }
+      50% { transform:scale(1.06); filter:drop-shadow(0 0 45px rgba(244,132,95,.4)); }
+    }
+    @keyframes breatheRing {
+      0%, 100% { opacity:.25; transform:scale(1); }
+      50% { opacity:.5; transform:scale(1.06); }
+    }
+    @keyframes breatheGlow {
+      0%, 100% { opacity:.4; transform:scale(1); }
+      50% { opacity:1; transform:scale(1.12); }
+    }
+
+    /* Listening state — faster breathing */
+    .pulse-logo-img.listening {
+      animation:listenBreathe 1.4s ease-in-out infinite;
+      filter:drop-shadow(0 0 50px rgba(244,132,95,.45));
+    }
+    @keyframes listenBreathe {
+      0%, 100% { transform:scale(1); filter:drop-shadow(0 0 30px rgba(244,132,95,.35)); }
+      50% { transform:scale(1.1); filter:drop-shadow(0 0 60px rgba(244,132,95,.55)); }
+    }
+
+    .pulse-ring.listening {
+      border-color:rgba(244,132,95,.2);
+      animation:ringListen 1.4s ease-in-out infinite;
+    }
+    @keyframes ringListen {
+      0%, 100% { opacity:.4; transform:scale(1); }
+      50% { opacity:.8; transform:scale(1.1); }
+    }
+
+    /* Thinking state — gentle fade */
+    .pulse-logo-img.thinking {
+      animation:thinkBreathe 1.2s ease-in-out infinite;
+    }
+    @keyframes thinkBreathe {
+      0%, 100% { transform:scale(1); opacity:1; }
+      50% { transform:scale(.96); opacity:.7; }
+    }
+
+    /* ═══ BRAND NAME ═══ */
+    .pulse-brand {
+      text-align:center;
+      margin-top:1.2rem;
+      font-size:.7rem;
+      letter-spacing:4px;
+      text-transform:uppercase;
+      color:rgba(254,249,239,.2);
+      transition:opacity .6s, margin .6s;
+    }
+    .pulse-top.small .pulse-brand { opacity:0; margin:0; height:0; overflow:hidden; }
+
+    /* ═══ MESSAGES ═══ */
+    .msgs-area {
+      flex:1;
+      overflow-y:auto;
+      padding:.8rem 1.2rem;
+      display:flex;
+      flex-direction:column;
+      gap:.35rem;
+      scroll-behavior:smooth;
+      mask-image:linear-gradient(transparent 0%, black 5%, black 95%, transparent 100%);
+      -webkit-mask-image:linear-gradient(transparent 0%, black 5%, black 95%, transparent 100%);
+    }
+
+    .msg {
+      max-width:82%;
+      padding:.6rem .85rem;
+      border-radius:18px;
+      font-size:.82rem;
+      line-height:1.6;
+      animation:msgIn .35s ease;
+      word-wrap:break-word;
+    }
+    @keyframes msgIn {
+      from { opacity:0; transform:translateY(8px); }
+      to { opacity:1; transform:translateY(0); }
+    }
+
+    .msg-ai {
+      align-self:flex-start;
+      background:rgba(255,255,255,.05);
+      color:rgba(254,249,239,.8);
+      border-bottom-left-radius:6px;
+    }
+    .msg-user {
+      align-self:flex-end;
+      background:linear-gradient(135deg,rgba(244,132,95,.15),rgba(249,199,79,.1));
+      color:rgba(254,249,239,.9);
+      border-bottom-right-radius:6px;
+    }
+    .msg-saved {
+      align-self:flex-start;
+      font-size:.58rem;
+      color:rgba(244,132,95,.4);
+      background:rgba(244,132,95,.05);
+      padding:.15rem .5rem;
+      border-radius:4px;
+    }
+    .msg-done {
+      align-self:center;
+      text-align:center;
+      font-size:.75rem;
+      color:rgba(254,249,239,.4);
+      padding:.5rem;
+    }
+    .msg-done a {
+      color:#f4845f;
+      text-decoration:none;
+      font-weight:600;
+    }
+    .msg-done a:hover { text-decoration:underline; }
+
+    /* Typing indicator */
+    .msg-typing {
+      align-self:flex-start;
+      padding:.5rem .8rem;
+      background:rgba(255,255,255,.04);
+      border-radius:18px;
+      border-bottom-left-radius:6px;
+    }
+    .dots { display:flex; gap:4px; }
+    .dots i {
+      width:5px; height:5px; border-radius:50%;
+      background:rgba(244,132,95,.45);
+      animation:dotBounce 1.3s infinite;
+    }
+    .dots i:nth-child(2) { animation-delay:.15s; }
+    .dots i:nth-child(3) { animation-delay:.3s; }
+    @keyframes dotBounce {
+      0%,100% { opacity:.3; transform:translateY(0); }
+      50% { opacity:1; transform:translateY(-3px); }
+    }
+
+    /* ═══ INPUT AREA ═══ */
+    .input-area {
+      flex-shrink:0;
+      padding:.6rem 1rem calc(.6rem + env(safe-area-inset-bottom, 0px));
+      display:flex;
+      align-items:center;
+      gap:.5rem;
+      border-top:1px solid rgba(255,255,255,.03);
+      background:rgba(255,255,255,.01);
+    }
+
+    .input-text {
+      flex:1;
+      padding:.55rem .8rem;
+      border-radius:14px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(255,255,255,.035);
+      color:#fef9ef;
+      font-size:.82rem;
+      font-family:inherit;
+      resize:none;
+      transition:border-color .2s;
+    }
+    .input-text::placeholder { color:rgba(254,249,239,.18); }
+    .input-text:focus { outline:none; border-color:rgba(244,132,95,.25); background:rgba(255,255,255,.05); }
+
+    .btn-send {
+      width:38px; height:38px;
+      border-radius:50%; border:none;
+      background:linear-gradient(135deg,#f4845f,#f9c74f);
+      color:#0a0a18;
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+      transition:transform .15s;
+    }
+    .btn-send:hover { transform:scale(1.06); }
+    .btn-send:active { transform:scale(.93); }
+
+    /* Voice button */
+    .btn-voice {
+      width:38px; height:38px;
+      border-radius:50%; border:none;
+      background:rgba(255,255,255,.06);
+      color:rgba(254,249,239,.4);
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+      transition:all .2s;
+      position:relative;
+    }
+    .btn-voice:hover { background:rgba(255,255,255,.1); color:rgba(254,249,239,.6); }
+    .btn-voice.recording {
+      background:rgba(244,132,95,.2);
+      color:#f4845f;
+      animation:voicePulse 1.5s infinite;
+    }
+    @keyframes voicePulse {
+      0%,100% { box-shadow:0 0 0 0 rgba(244,132,95,.3); }
+      50% { box-shadow:0 0 0 8px rgba(244,132,95,0); }
+    }
+    .btn-voice.unsupported { display:none; }
+
+    /* Interim text */
+    .interim-text {
+      position:absolute;
+      bottom:100%;
+      left:50%;
+      transform:translateX(-50%);
+      background:rgba(244,132,95,.12);
+      color:rgba(254,249,239,.5);
+      font-size:.65rem;
+      padding:.2rem .5rem;
+      border-radius:6px;
+      white-space:nowrap;
+      margin-bottom:4px;
+      display:none;
+    }
+    .btn-voice.recording .interim-text { display:block; }
+
+    /* ═══ ENTER DASHBOARD link ═══ */
+    .skip-link {
+      position:fixed;
+      top:.8rem; right:1rem;
+      font-size:.65rem;
+      color:rgba(254,249,239,.2);
+      text-decoration:none;
+      transition:color .2s;
+      z-index:10;
+    }
+    .skip-link:hover { color:rgba(254,249,239,.4); }
+
+    /* ═══ TRANSITION TO DASHBOARD ═══ */
+    .page-transition {
+      position:fixed; inset:0;
+      background:#0a0a18;
+      z-index:100;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; pointer-events:none;
+      transition:opacity .6s ease;
+    }
+    .page-transition.active {
+      opacity:1; pointer-events:auto;
+    }
+    .page-transition .pulse-circle {
+      width:60px; height:60px; position:relative;
+    }
+
+    /* Responsive */
+    @media(max-width:500px) {
+      .pulse-top { padding-top:clamp(1.5rem,6vh,3rem); }
+      .pulse-logo-wrap { width:70px; height:70px; }
+      .msgs-area { padding:.6rem .8rem; }
+      .msg { font-size:.78rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="/dashboard-skip" class="skip-link" id="skipLink" style="display:none">Saltar →</a>
+
+<!-- Logo area -->
+<div class="pulse-top" id="pulseTop">
+  <div class="pulse-logo-wrap" id="logoWrap">
+    <div class="pulse-ring" id="ring1"></div>
+    <div class="pulse-ring" id="ring2"></div>
+    <div class="pulse-ring" id="ring3"></div>
+    <div class="pulse-glow"></div>
+    <img src="/img/logo-pulse.png" alt="Pulse" class="pulse-logo-img" id="pulseCircle" />
+  </div>
+</div>
+<div class="pulse-brand" id="pulseBrand">Pulse</div>
+
+<!-- Messages -->
+<div class="msgs-area" id="msgs"></div>
+
+<!-- Input -->
+<div class="input-area">
+  <button class="btn-voice" id="btnVoice" title="Hablar">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    <span class="interim-text" id="interim"></span>
+  </button>
+  <input type="text" class="input-text" id="inputText" placeholder="O escribe aquí..." autocomplete="off" />
+  <button class="btn-send" id="btnSend">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+
+<!-- Transition overlay -->
+<div class="page-transition" id="transition">
+  <img src="/img/logo-pulse.png" alt="" style="width:60px;height:60px;border-radius:22%;animation:breathe 1.5s ease-in-out infinite;" />
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var msgs = [];
+  var currentQ = null;
+  var conversationDone = false;
+  var nombre = '<%= locals.nombre || "" %>';
+
+  var msgsEl = document.getElementById('msgs');
+  var inputEl = document.getElementById('inputText');
+  var btnSend = document.getElementById('btnSend');
+  var btnVoice = document.getElementById('btnVoice');
+  var pulseCircle = document.getElementById('pulseCircle');
+  var rings = [document.getElementById('ring1'), document.getElementById('ring2'), document.getElementById('ring3')];
+  var pulseTop = document.getElementById('pulseTop');
+  var skipLink = document.getElementById('skipLink');
+
+  /* ═══ VOICE ═══ */
+  var SpeechRecog = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var recognition = null;
+  var isRecording = false;
+
+  if (SpeechRecog) {
+    recognition = new SpeechRecog();
+    recognition.lang = 'es-CL';
+    recognition.continuous = false;
+    recognition.interimResults = true;
+
+    recognition.onresult = function(e) {
+      var interim = '';
+      var final = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) {
+          final += e.results[i][0].transcript;
+        } else {
+          interim += e.results[i][0].transcript;
+        }
+      }
+      if (interim) {
+        document.getElementById('interim').textContent = interim;
+        inputEl.value = interim;
+      }
+      if (final) {
+        inputEl.value = final;
+        stopRecording();
+        setTimeout(function() { sendMessage(final); }, 200);
+      }
+    };
+
+    recognition.onerror = function(e) {
+      stopRecording();
+      if (e.error === 'no-speech') {
+        // Silent — just stop
+      }
+    };
+
+    recognition.onend = function() {
+      if (isRecording) stopRecording();
+    };
+  } else {
+    btnVoice.classList.add('unsupported');
+  }
+
+  btnVoice.onclick = function() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  function startRecording() {
+    if (!recognition) return;
+    isRecording = true;
+    btnVoice.classList.add('recording');
+    pulseCircle.classList.add('listening');
+    rings.forEach(function(r) { r.classList.add('listening'); });
+    document.getElementById('interim').textContent = 'Escuchando...';
+    inputEl.placeholder = 'Hablando...';
+    try { recognition.start(); } catch(e) {}
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    btnVoice.classList.remove('recording');
+    pulseCircle.classList.remove('listening');
+    rings.forEach(function(r) { r.classList.remove('listening'); });
+    inputEl.placeholder = 'O escribe aquí...';
+    document.getElementById('interim').textContent = '';
+    try { recognition.stop(); } catch(e) {}
+  }
+
+  /* ═══ MESSAGES ═══ */
+  function addAI(text, delay) {
+    if (delay) {
+      setTimeout(function() { _add('ai', text); }, delay);
+    } else {
+      _add('ai', text);
+    }
+  }
+  function addUser(text) { _add('user', text); }
+  function addSaved(text) { _add('saved', text); }
+  function addDone(html) { _add('done', html); }
+
+  function _add(type, text) {
+    msgs.push({ type: type, text: text });
+    render();
+  }
+
+  function showTyping() {
+    removeTyping();
+    var d = document.createElement('div');
+    d.className = 'msg-typing';
+    d.id = 'typing';
+    d.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>';
+    msgsEl.appendChild(d);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+    pulseCircle.classList.add('thinking');
+  }
+
+  function removeTyping() {
+    var t = document.getElementById('typing');
+    if (t) t.remove();
+    pulseCircle.classList.remove('thinking');
+  }
+
+  function render() {
+    var html = '';
+    msgs.forEach(function(m) {
+      if (m.type === 'ai') html += '<div class="msg msg-ai">' + m.text + '</div>';
+      else if (m.type === 'user') html += '<div class="msg msg-user">' + m.text + '</div>';
+      else if (m.type === 'saved') html += '<div class="msg-saved">' + m.text + '</div>';
+      else if (m.type === 'done') html += '<div class="msg-done">' + m.text + '</div>';
+    });
+    msgsEl.innerHTML = html;
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+
+  /* ═══ LOGO STATE ═══ */
+  function shrinkLogo() {
+    pulseTop.classList.add('small');
+  }
+
+  /* ═══ API ═══ */
+  function chat(text, cb) {
+    fetch('/api/clauch/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, lastQuestion: currentQ }),
+    }).then(function(r) { return r.json(); })
+      .then(function(d) { if (cb) cb(d); })
+      .catch(function() { if (cb) cb(null); });
+  }
+
+  /* ═══ SEND ═══ */
+  function sendMessage(text) {
+    if (!text || !text.trim()) return;
+    text = text.trim();
+    inputEl.value = '';
+    addUser(text);
+    showTyping();
+
+    // Shrink logo after first message
+    shrinkLogo();
+
+    chat(text, function(data) {
+      removeTyping();
+      if (!data) {
+        addAI('Perdón, algo falló. ¿Puedes repetir?');
+        return;
+      }
+
+      currentQ = data.nextQuestion || null;
+
+      if (data.messages && data.messages.length > 0) {
+        data.messages.forEach(function(m, i) {
+          addAI(m, i * 500);
+        });
+      }
+
+      // Saved items
+      if (data.saved && data.saved.length > 0) {
+        var delay = (data.messages ? data.messages.length : 0) * 500;
+        setTimeout(function() {
+          addSaved(data.saved.map(function(s) { return '✓ ' + s.field; }).join('  '));
+        }, delay);
+      }
+
+      // All done
+      if (data.allDone && !data.nextQuestion) {
+        conversationDone = true;
+        var doneDelay = ((data.messages ? data.messages.length : 0) + 1) * 500 + 400;
+        setTimeout(function() {
+          addDone('Todo listo. Tu app está configurada.<br/><a href="javascript:void(0)" onclick="window._enterDashboard()">Entrar a Pulse →</a>');
+          skipLink.style.display = 'block';
+        }, doneDelay);
+      }
+
+      inputEl.focus();
+    });
+  }
+
+  btnSend.onclick = function() { sendMessage(inputEl.value); };
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(inputEl.value);
+    }
+  });
+
+  /* ═══ TRANSITION TO DASHBOARD ═══ */
+  window._enterDashboard = function() {
+    var tr = document.getElementById('transition');
+    tr.classList.add('active');
+    setTimeout(function() {
+      window.location.href = '/dashboard-ready';
+    }, 700);
+  };
+
+  skipLink.onclick = function(e) {
+    e.preventDefault();
+    window._enterDashboard();
+  };
+
+  /* ═══ START ═══ */
+  function startExperience() {
+    // Wait for the heartbeat to breathe, then begin
+    setTimeout(function() {
+      if (nombre) {
+        addAI('Hola ' + nombre + '.');
+      } else {
+        addAI('Hola.');
+      }
+
+      setTimeout(function() {
+        addAI('Soy Pulse, tu espacio personal.');
+        setTimeout(function() {
+          // Get first question
+          showTyping();
+          chat('__start__', function(data) {
+            removeTyping();
+            if (data && data.messages && data.messages.length > 0) {
+              currentQ = data.nextQuestion;
+              data.messages.forEach(function(m, i) {
+                addAI(m, i * 500);
+              });
+            } else {
+              addAI('Cuéntame, ¿cómo estás hoy?');
+            }
+          });
+        }, 800);
+      }, 800);
+    }, 1800);
+  }
+
+  startExperience();
+
+})();
+</script>
+</body>
+</html>

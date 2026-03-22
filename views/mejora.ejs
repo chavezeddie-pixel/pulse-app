@@ -1,0 +1,541 @@
+<%- include('partials/header') %>
+<%
+var _m   = locals.mejora || {};
+var _ch  = locals.checkins || [];
+var _dias = locals.dias || 7;
+var _wObjs = locals.weeklyObjs || [];
+var _mObjs = locals.monthlyObjs || [];
+%>
+<style>
+/* ── layout ── */
+.mej-grid { display:grid; grid-template-columns:1fr 340px; gap:1.1rem; align-items:start; }
+@media(max-width:900px){ .mej-grid { grid-template-columns:1fr; } }
+
+/* ── período selector ── */
+.period-tab { padding:.28rem .75rem; border-radius:99px; font-size:.78rem; font-family:var(--font-mono); font-weight:700; border:1px solid var(--border); color:var(--text-muted); cursor:pointer; transition:all .13s; text-decoration:none; }
+.period-tab:hover { border-color:var(--accent); color:var(--accent); }
+.period-tab.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+/* ── bienestar ring ── */
+.bien-ring-wrap { position:relative; flex-shrink:0; }
+.bien-ring-center { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; line-height:1; }
+
+/* ── mini métricas ── */
+.mini-met { display:flex; flex-direction:column; gap:.2rem; padding:.6rem .75rem; background:var(--surface-2); border-radius:var(--radius); border:1px solid var(--border); }
+.mini-met-val { font-family:var(--font-mono); font-size:1.15rem; font-weight:700; }
+.mini-met-label { font-size:.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.07em; }
+.mini-met-bar { height:3px; background:var(--border); border-radius:2px; margin-top:.3rem; }
+.mini-met-fill { height:3px; border-radius:2px; }
+
+/* ── tendencias ── */
+.tend-row { display:flex; align-items:center; gap:.65rem; padding:.38rem .5rem; border-radius:6px; font-size:.82rem; margin-bottom:.25rem; }
+.tend-row.up   { background:rgba(34,197,94,.07); }
+.tend-row.down { background:rgba(239,68,68,.07); }
+.tend-row.warn { background:rgba(245,158,11,.07); }
+.tend-row.ok   { background:var(--surface-2); }
+.tend-ico { font-size:1rem; flex-shrink:0; width:22px; text-align:center; }
+.tend-label { font-size:.65rem; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; min-width:58px; }
+.tend-txt { color:var(--text-soft); flex:1; }
+
+/* ── hábito grid (GitHub-style) ── */
+.hab-grid-row { display:flex; align-items:center; gap:.55rem; padding:.3rem 0; border-bottom:1px solid var(--border); }
+.hab-grid-row:last-child { border-bottom:none; }
+.hab-grid-name { font-size:.78rem; min-width:110px; max-width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.hab-dots { display:flex; gap:2px; flex:1; }
+.hab-dot { width:9px; height:9px; border-radius:2px; flex-shrink:0; }
+.hab-dot.done { background:var(--green); }
+.hab-dot.miss { background:var(--border); }
+.hab-pct { font-family:var(--font-mono); font-size:.7rem; min-width:32px; text-align:right; }
+.hab-racha { font-size:.68rem; color:var(--accent); min-width:38px; text-align:right; }
+
+/* ── strength items ── */
+.str-item { display:flex; align-items:center; gap:.6rem; padding:.4rem .5rem; border-radius:6px; margin-bottom:.3rem; }
+.str-item:hover { background:var(--surface-2); }
+.str-bar-wrap { flex:1; height:5px; background:var(--border); border-radius:3px; }
+.str-bar-fill { height:5px; border-radius:3px; transition:width .3s; }
+
+/* ── objetivo row ── */
+.obj-row { display:flex; align-items:center; gap:.55rem; padding:.38rem .55rem; border-radius:6px; margin-bottom:.3rem; background:var(--surface-2); border:1px solid var(--border); font-size:.82rem; }
+.obj-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* ── recomendaciones ── */
+.rec-item { display:flex; gap:.75rem; padding:.65rem .8rem; background:var(--surface-2); border-left:3px solid var(--accent); border-radius:6px; margin-bottom:.45rem; font-size:.84rem; color:var(--text-soft); line-height:1.6; }
+.rec-num { font-family:var(--font-mono); font-size:.82rem; color:var(--accent); font-weight:700; flex-shrink:0; }
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mejora Personal</h1>
+    <p class="page-subtitle">Análisis de progreso · <%= _ch.length %> registros</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:.5rem">
+    <a href="/mejora?dias=7"  class="period-tab <%= _dias===7?'active':'' %>">7d</a>
+    <a href="/mejora?dias=30" class="period-tab <%= _dias===30?'active':'' %>">30d</a>
+    <a href="/checkin" class="btn btn-primary btn-sm">+ Chequeo</a>
+  </div>
+</div>
+
+<div class="mej-grid">
+
+  <!-- ── COLUMNA PRINCIPAL ── -->
+  <div style="display:flex;flex-direction:column;gap:1rem">
+
+    <!-- Métricas del período -->
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:.5rem">
+      <%
+        var _mets = [
+          { label:'Energía',  val:_m.avgEnergia,  color:'var(--accent)',  pct: parseFloat(_m.avgEnergia)*10 },
+          { label:'Ánimo',    val:_m.avgAnimo,    color:'#a78bfa',        pct: parseFloat(_m.avgAnimo)*10 },
+          { label:'Claridad', val:_m.avgClarity,  color:'#38bdf8',        pct: parseFloat(_m.avgClarity)*10 },
+          { label:'Ansiedad', val:_m.avgAnsiedad, color:'#fb7185',        pct: parseFloat(_m.avgAnsiedad)*10 },
+          { label:'Sueño',    val:_m.avgSueno,    color:'var(--green)',   pct: parseFloat(_m.avgSueno)/9*100, unit:'h' },
+          { label:'Chequeos', val:_ch.length,     color:'var(--text)',    pct: Math.min(_ch.length/_dias*100,100), unit:'/'+_dias+'d' },
+        ];
+        _mets.forEach(function(mt){
+      %>
+      <div class="mini-met">
+        <div class="mini-met-label"><%= mt.label %></div>
+        <div class="mini-met-val" style="color:<%= mt.color %>"><%= mt.val %><span style="font-size:.6rem;color:var(--text-muted)"><%= mt.unit||'/10' %></span></div>
+        <div class="mini-met-bar"><div class="mini-met-fill" style="width:<%= mt.pct %>%;background:<%= mt.color %>"></div></div>
+      </div>
+      <% }); %>
+    </div>
+
+    <!-- Gráfica evolución -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">📈 Evolución <%= _dias %> días</h2>
+        <div style="display:flex;gap:.4rem">
+          <span style="font-size:.7rem;color:var(--text-muted);display:flex;align-items:center;gap:.25rem"><span style="display:inline-block;width:10px;height:3px;background:#22c55e;border-radius:2px"></span>Energía</span>
+          <span style="font-size:.7rem;color:var(--text-muted);display:flex;align-items:center;gap:.25rem"><span style="display:inline-block;width:10px;height:3px;background:#a78bfa;border-radius:2px"></span>Ánimo</span>
+          <span style="font-size:.7rem;color:var(--text-muted);display:flex;align-items:center;gap:.25rem"><span style="display:inline-block;width:10px;height:3px;background:#ef4444;border-radius:2px"></span>Ansiedad</span>
+        </div>
+      </div>
+      <% if (_ch.length >= 2) { %>
+      <div style="height:200px;position:relative"><canvas id="mejoraChart"></canvas></div>
+      <% } else { %>
+      <div style="text-align:center;padding:2.5rem;color:var(--text-muted)">
+        <div style="font-size:2rem;margin-bottom:.5rem">📊</div>
+        <p style="font-size:.85rem;margin-bottom:.75rem">Registra al menos 2 chequeos para ver la evolución</p>
+        <a href="/checkin" class="btn btn-primary btn-sm">Registrar ahora →</a>
+      </div>
+      <% } %>
+    </div>
+
+    <!-- Cómo te has sentido (calendario 30 días) -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">🌡 Cómo te has sentido · 30 días</h2>
+        <div style="display:flex;gap:.4rem;align-items:center;font-size:.68rem;color:var(--text-muted);flex-wrap:wrap">
+          <span style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,.3);border:1px dashed rgba(255,255,255,.2);display:inline-block"></span>Neutro
+          <span style="width:10px;height:10px;border-radius:2px;background:#ef4444;display:inline-block;margin-left:.3rem"></span>Bajo
+          <span style="width:10px;height:10px;border-radius:2px;background:#f59e0b;display:inline-block;margin-left:.3rem"></span>Regular
+          <span style="width:10px;height:10px;border-radius:2px;background:#22c55e;display:inline-block;margin-left:.3rem"></span>Bien
+        </div>
+      </div>
+
+      <%
+        // Construir mapa de checkins por fecha
+        var _ch30 = locals.checkins30 || [];
+        var _mapCh = {};
+        _ch30.forEach(function(c){ _mapCh[c.date] = c; });
+
+        // Generar los últimos 30 días
+        var _dias30 = [];
+        for(var _di=29; _di>=0; _di--){
+          var _dd = new Date(); _dd.setDate(_dd.getDate()-_di);
+          var _ds = _dd.toISOString().split('T')[0];
+          var _dc = _mapCh[_ds] || null;
+          var _isReal = _dc && !_dc._neutral;
+          var _score = _dc ? Math.round((_dc.energy + _dc.mood + _dc.clarity + (10-_dc.anxiety)) / 4) : null;
+          var _color = !_dc ? 'var(--border)' : !_isReal ? 'rgba(99,102,241,.18)' : _score>=7 ? '#22c55e' : _score>=4 ? '#f59e0b' : '#ef4444';
+          _dias30.push({ date:_ds, checkin:_dc, isReal:_isReal, score:_score, color:_color,
+            dayNum: _dd.getDate(), dayName: ['D','L','M','X','J','V','S'][_dd.getDay()] });
+        }
+      %>
+
+      <!-- Cabecera días semana -->
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px">
+        <% ['L','M','X','J','V','S','D'].forEach(function(d){ %>
+        <div style="font-size:.6rem;color:var(--text-muted);font-family:var(--font-mono);text-align:center"><%= d %></div>
+        <% }); %>
+      </div>
+
+      <!-- Celdas de días -->
+      <%
+        // Calcular offset para empezar en lunes
+        var _firstDay = new Date(); _firstDay.setDate(_firstDay.getDate()-29);
+        var _offset = (_firstDay.getDay() + 6) % 7; // 0=lunes
+      %>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+        <% for(var _oi=0; _oi<_offset; _oi++){ %>
+        <div></div>
+        <% } %>
+        <% _dias30.forEach(function(d){ %>
+        <div title="<%= d.date %><%= d.checkin?' · E:'+d.checkin.energy+' Á:'+d.checkin.mood+' An:'+d.checkin.anxiety:' — clic para registrar' %>"
+          onclick="<%= !d.isReal ? 'abrirRetro(\''+d.date+'\','+d.dayNum+')' : '' %>"
+          style="aspect-ratio:1;border-radius:3px;background:<%= d.color %>;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:<%= d.isReal?'help':'pointer' %>;position:relative;transition:transform .1s;<%= !d.isReal?'border:1px dashed rgba(255,255,255,.12)':'' %>"
+          onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1)'"
+          title="<%= d.date %><%= d.isReal?' · E:'+d.checkin.energy+' Á:'+d.checkin.mood+' An:'+d.checkin.anxiety:' · Neutro — clic para registrar' %>">
+          <span style="font-size:.52rem;color:<%= d.isReal?'rgba(0,0,0,.6)':'rgba(255,255,255,.35)' %>;font-family:var(--font-mono);font-weight:700;line-height:1"><%= d.dayNum %></span>
+          <% if(d.isReal){ %><span style="font-size:.48rem;color:rgba(0,0,0,.5);font-family:var(--font-mono)"><%= d.score %></span><% } %>
+          <% if(!d.isReal){ %><span style="font-size:.5rem;color:rgba(255,255,255,.3);line-height:1">+</span><% } %>
+        </div>
+        <% }); %>
+      </div>
+
+      <!-- Leyenda inferior -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem;padding-top:.65rem;border-top:1px solid var(--border)">
+        <div style="display:flex;gap:1rem;font-size:.75rem;color:var(--text-muted)">
+          <% var _neutros = _dias30.filter(function(d){return !d.isReal}).length; %>
+          <% var _bajos  = _dias30.filter(function(d){return d.isReal&&d.score<4}).length; %>
+          <% var _regus  = _dias30.filter(function(d){return d.isReal&&d.score>=4&&d.score<7}).length; %>
+          <% var _buenos = _dias30.filter(function(d){return d.isReal&&d.score>=7}).length; %>
+          <span style="color:#22c55e">● <strong><%= _buenos %></strong> bien</span>
+          <span style="color:#f59e0b">● <strong><%= _regus %></strong> regular</span>
+          <span style="color:#ef4444">● <strong><%= _bajos %></strong> bajo</span>
+          <span style="color:rgba(99,102,241,.7)">● <strong><%= _neutros %></strong> neutro</span>
+        </div>
+        <% if(_buenos+_regus+_bajos>0){ %>
+        <div style="font-family:var(--font-mono);font-size:.72rem;color:var(--accent)">
+          <%= Math.round(_buenos/(_buenos+_regus+_bajos)*100) %>% días buenos
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Grid de hábitos (últimos 28 días) -->
+    <% if (_m.habitStats && _m.habitStats.length > 0) { %>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">🔲 Hábitos · últimos 28 días</h2>
+        <div style="display:flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--text-muted)">
+          <span style="width:9px;height:9px;border-radius:2px;background:var(--border);display:inline-block"></span> Sin hacer
+          <span style="width:9px;height:9px;border-radius:2px;background:var(--green);display:inline-block;margin-left:.3rem"></span> Hecho
+        </div>
+      </div>
+      <div>
+        <% _m.habitStats.forEach(function(h){ %>
+        <div class="hab-grid-row">
+          <div class="hab-grid-name" title="<%= h.nombre %>"><%= h.nombre %></div>
+          <div class="hab-dots">
+            <% h.grid.forEach(function(g){ %>
+            <div class="hab-dot <%= g.done?'done':'miss' %>" title="<%= g.date %>"></div>
+            <% }); %>
+          </div>
+          <span class="hab-pct" style="color:<%= h.rate7>=70?'var(--green)':h.rate7>=40?'var(--accent)':'var(--red)' %>"><%= h.rate7 %>%</span>
+          <span class="hab-racha"><% if(h.racha>0){ %>🔥<%= h.racha %>d<% } %></span>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Objetivos -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">📌 Semana</h2>
+          <% var _wDone=_wObjs.filter(function(o){return o.status==='completado'}).length; %>
+          <span class="badge badge-muted"><%= _wDone %>/<%= _wObjs.length %></span>
+        </div>
+        <% if (_wObjs.length === 0) { %>
+        <p class="empty-state">Sin objetivos. <a href="/agenda">Crear →</a></p>
+        <% } else { %>
+        <div class="metric-bar" style="margin-bottom:.65rem"><div class="metric-fill" style="width:<%= _wObjs.length?Math.round(_wDone/_wObjs.length*100):0 %>%"></div></div>
+        <% _wObjs.forEach(function(o){ %>
+        <div class="obj-row">
+          <div class="obj-dot" style="background:<%= o.status==='completado'?'var(--green)':o.status==='en proceso'?'var(--accent)':'var(--border-2)' %>"></div>
+          <span style="flex:1;<%= o.status==='completado'?'text-decoration:line-through;color:var(--text-muted)':'' %>"><%= o.name %></span>
+          <span style="font-size:.62rem;color:var(--text-muted)"><%= o.priority %></span>
+        </div>
+        <% }); %>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">🎯 Mes</h2>
+          <% var _mDone=_mObjs.filter(function(o){return o.status==='completado'}).length; %>
+          <span class="badge badge-muted"><%= _mDone %>/<%= _mObjs.length %></span>
+        </div>
+        <% if (_mObjs.length === 0) { %>
+        <p class="empty-state">Sin metas. <a href="/agenda">Crear →</a></p>
+        <% } else { %>
+        <div class="metric-bar" style="margin-bottom:.65rem"><div class="metric-fill" style="width:<%= _mObjs.length?Math.round(_mDone/_mObjs.length*100):0 %>%"></div></div>
+        <% _mObjs.forEach(function(o){ %>
+        <div class="obj-row" style="flex-direction:column;align-items:stretch;gap:.3rem">
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <div class="obj-dot" style="background:<%= o.status==='completado'?'var(--green)':o.status==='en proceso'?'var(--accent)':'var(--border-2)' %>"></div>
+            <span style="flex:1;font-size:.81rem;<%= o.status==='completado'?'text-decoration:line-through;color:var(--text-muted)':'' %>"><%= o.name %></span>
+            <span style="font-family:var(--font-mono);font-size:.7rem;color:var(--accent)"><%= o.percentage %>%</span>
+          </div>
+          <div style="height:3px;background:var(--border);border-radius:2px;margin-left:1.1rem">
+            <div style="height:3px;border-radius:2px;background:<%= o.status==='completado'?'var(--green)':'var(--accent)' %>;width:<%= o.percentage %>%"></div>
+          </div>
+        </div>
+        <% }); %>
+        <% } %>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── COLUMNA DERECHA ── -->
+  <div style="display:flex;flex-direction:column;gap:1rem">
+
+    <!-- Score bienestar -->
+    <div class="card" style="text-align:center;padding:1.25rem 1rem">
+      <% var _bScore = _m.bienestar; %>
+      <% var _bColor = _bScore>=70?'var(--green)':_bScore>=40?'var(--accent)':'var(--red)'; %>
+      <% var _bLabel = _bScore>=80?'Excelente':_bScore>=65?'Bueno':_bScore>=45?'Regular':_bScore!==null?'Bajo':'—'; %>
+      <div class="bien-ring-wrap" style="display:inline-block;margin-bottom:.5rem">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="8"/>
+          <% if(_bScore!==null){ %>
+          <circle cx="50" cy="50" r="42" fill="none" stroke="<%= _bColor %>" stroke-width="8"
+            stroke-dasharray="263.9"
+            stroke-dashoffset="<%= Math.round(263.9*(1-_bScore/100)) %>"
+            stroke-linecap="round" transform="rotate(-90 50 50)"/>
+          <% } %>
+        </svg>
+        <div class="bien-ring-center">
+          <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:<%= _bColor %>"><%= _bScore!==null?_bScore:'—' %></div>
+          <div style="font-size:.55rem;color:var(--text-muted)">/100</div>
+        </div>
+      </div>
+      <div style="font-size:.72rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted)">Bienestar <%= _dias %>d</div>
+      <div style="font-size:1rem;font-weight:600;color:<%= _bColor %>;margin-top:.2rem"><%= _bLabel %></div>
+      <% if(_ch.length === 0){ %>
+      <p style="font-size:.75rem;color:var(--text-muted);margin-top:.5rem">Sin chequeos registrados</p>
+      <% } %>
+    </div>
+
+    <!-- Actividad -->
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">⚡ Actividad</h2></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+        <div style="text-align:center;padding:.65rem;background:var(--surface-2);border-radius:8px">
+          <div style="font-size:1.5rem;font-family:var(--font-mono);font-weight:700;color:var(--green)"><%= _m.exerciseDays %></div>
+          <div style="font-size:.68rem;color:var(--text-muted)">💪 días ejercicio</div>
+        </div>
+        <div style="text-align:center;padding:.65rem;background:var(--surface-2);border-radius:8px">
+          <div style="font-size:1.5rem;font-family:var(--font-mono);font-weight:700;color:#38bdf8"><%= _m.studyDays %></div>
+          <div style="font-size:.68rem;color:var(--text-muted)">📚 días estudio</div>
+        </div>
+        <div style="text-align:center;padding:.65rem;background:var(--surface-2);border-radius:8px">
+          <div style="font-size:1.5rem;font-family:var(--font-mono);font-weight:700;color:#a78bfa"><%= _m.avgSueno %></div>
+          <div style="font-size:.68rem;color:var(--text-muted)">😴 h sueño prom.</div>
+        </div>
+        <div style="text-align:center;padding:.65rem;background:var(--surface-2);border-radius:8px">
+          <div style="font-size:1.5rem;font-family:var(--font-mono);font-weight:700;color:var(--accent)"><%= _m.mejorRacha %></div>
+          <div style="font-size:.68rem;color:var(--text-muted)">🔥 mejor racha</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tendencias -->
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">📊 Tendencias</h2></div>
+      <% if (_m.tendencias && _m.tendencias.length > 0) { %>
+        <% _m.tendencias.forEach(function(t){ %>
+        <div class="tend-row <%= t.tipo %>">
+          <span class="tend-ico"><%= t.icono %></span>
+          <span class="tend-label"><%= t.label %></span>
+          <span class="tend-txt"><%= t.texto %></span>
+        </div>
+        <% }); %>
+      <% } else { %>
+        <p class="empty-state">Registra al menos 3 chequeos para ver tendencias.</p>
+      <% } %>
+    </div>
+
+    <!-- Top hábitos -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">💪 Top hábitos · 7d</h2>
+        <a href="/habits" class="btn btn-ghost btn-sm" style="font-size:.7rem">Gestionar →</a>
+      </div>
+      <% if(_m.fortalezas && _m.fortalezas.length){ %>
+        <% _m.fortalezas.forEach(function(h){ %>
+        <div class="str-item">
+          <span style="font-size:.75rem;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= h.nombre %></span>
+          <% if(h.racha>0){ %><span style="font-size:.65rem;color:var(--accent);flex-shrink:0">🔥<%= h.racha %>d</span><% } %>
+          <div class="str-bar-wrap" style="max-width:60px">
+            <div class="str-bar-fill" style="width:<%= h.rate7 %>%;background:<%= h.rate7>=70?'var(--green)':h.rate7>=40?'var(--accent)':'var(--red)' %>"></div>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:.72rem;min-width:32px;text-align:right;color:<%= h.rate7>=70?'var(--green)':h.rate7>=40?'var(--accent)':'var(--red)' %>"><%= h.rate7 %>%</span>
+        </div>
+        <% }); %>
+      <% } else { %>
+      <p class="empty-state">Sin hábitos. <a href="/habits">Crear →</a></p>
+      <% } %>
+    </div>
+
+    <!-- Recomendaciones -->
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">🎯 Recomendaciones</h2></div>
+      <% if(_m.recomendaciones && _m.recomendaciones.length){ %>
+        <% _m.recomendaciones.forEach(function(r,i){ %>
+        <div class="rec-item">
+          <span class="rec-num"><%= i+1 %></span>
+          <span><%= r %></span>
+        </div>
+        <% }); %>
+      <% } else { %>
+      <p class="empty-state">Registra más datos para ver recomendaciones.</p>
+      <% } %>
+    </div>
+
+  </div>
+</div>
+
+<% if (_ch.length >= 2) { %>
+<script>
+window.addEventListener('load', function() {
+  var D = <%- locals.chartData || '{}' %>;
+  if (!D.labels) return;
+  var ctx = document.getElementById('mejoraChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: D.labels,
+      datasets: [
+        { label:'Energía',  data:D.energy,  borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.07)',   tension:.4, pointRadius:3, borderWidth:2, fill:true },
+        { label:'Ánimo',    data:D.mood,    borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.07)', tension:.4, pointRadius:3, borderWidth:2, fill:false },
+        { label:'Claridad', data:D.clarity, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,.05)',  tension:.4, pointRadius:2, borderWidth:1.5, fill:false },
+        { label:'Ansiedad', data:D.anxiety, borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.05)',   tension:.4, pointRadius:2, borderWidth:1.5, fill:false, borderDash:[4,3] },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      scales: {
+        y:{ min:1, max:10, ticks:{ color:'rgba(255,255,255,.35)', font:{size:9} }, grid:{ color:'rgba(255,255,255,.05)' } },
+        x:{ ticks:{ color:'rgba(255,255,255,.35)', font:{size:9} }, grid:{ display:false } }
+      },
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ backgroundColor:'rgba(0,0,0,.8)', titleColor:'#fff', bodyColor:'rgba(255,255,255,.7)', padding:10 }
+      }
+    }
+  });
+});
+</script>
+<% } %>
+
+<!-- MODAL REGISTRO RETROACTIVO -->
+<div class="modal-overlay" id="modal-retro" onclick="closeOnOverlay(event,this.id)" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3>¿Cómo estuviste el <span id="retro-fecha-label"></span>?</h3>
+      <button onclick="toggleModal('modal-retro')" class="modal-close">✕</button>
+    </div>
+    <form id="retro-form" class="modal-form">
+      <input type="hidden" id="retro-date" name="date" />
+
+      <!-- Sliders -->
+      <% [
+        { key:'energy',  label:'Energía',  color:'#f59e0b', lo:'Sin energía', hi:'Lleno de energía', def:6 },
+        { key:'mood',    label:'Ánimo',    color:'#a78bfa', lo:'Muy bajo',    hi:'Excelente',        def:6 },
+        { key:'clarity', label:'Claridad', color:'#38bdf8', lo:'Confuso',     hi:'Muy claro',        def:6 },
+        { key:'anxiety', label:'Ansiedad', color:'#fb7185', lo:'Tranquilo',   hi:'Muy ansioso',      def:3 },
+      ].forEach(function(s){ %>
+      <div class="form-field" style="margin-bottom:.65rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+          <label class="field-label" style="margin:0"><%= s.label %></label>
+          <span id="retro-val-<%= s.key %>" style="font-family:var(--font-mono);font-size:.88rem;font-weight:700;color:<%= s.color %>"><%= s.def %>/10</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-size:.65rem;color:var(--text-muted);min-width:60px"><%= s.lo %></span>
+          <input type="range" id="retro-<%= s.key %>" name="<%= s.key %>" min="1" max="10" value="<%= s.def %>"
+            style="flex:1;accent-color:<%= s.color %>"
+            oninput="document.getElementById('retro-val-<%= s.key %>').textContent=this.value+'/10'" />
+          <span style="font-size:.65rem;color:var(--text-muted);min-width:60px;text-align:right"><%= s.hi %></span>
+        </div>
+      </div>
+      <% }); %>
+
+      <!-- Sueño -->
+      <div class="form-field" style="margin-bottom:.65rem">
+        <label class="field-label">Horas de sueño esa noche</label>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <input type="range" id="retro-sleep" name="sleep_hours" min="3" max="12" step="0.5" value="7"
+            style="flex:1;accent-color:var(--green)"
+            oninput="document.getElementById('retro-val-sleep').textContent=this.value+'h'" />
+          <span id="retro-val-sleep" style="font-family:var(--font-mono);font-size:.88rem;font-weight:700;color:var(--green);min-width:32px">7h</span>
+        </div>
+      </div>
+
+      <!-- Checkboxes -->
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem;font-size:.83rem">
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+          <input type="checkbox" id="retro-exercise" name="did_exercise" style="accent-color:var(--green)" /> 💪 Hice ejercicio
+        </label>
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+          <input type="checkbox" id="retro-study" name="did_study" style="accent-color:var(--accent)" /> 📚 Estudié
+        </label>
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+          <input type="checkbox" id="retro-main" name="completed_main" style="accent-color:#a78bfa" /> ⭐ Cumplí mi bloque principal
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-retro')">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarRetro()">Guardar ese día</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var MESES_RETRO = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function abrirRetro(fecha, dia) {
+  document.getElementById('retro-date').value = fecha;
+  var parts = fecha.split('-');
+  var mes = MESES_RETRO[parseInt(parts[1])-1];
+  document.getElementById('retro-fecha-label').textContent = dia + ' de ' + mes;
+  // reset sliders a valores neutros
+  ['energy','mood','clarity'].forEach(function(k){ document.getElementById('retro-'+k).value=6; document.getElementById('retro-val-'+k).textContent='6/10'; });
+  document.getElementById('retro-anxiety').value=3; document.getElementById('retro-val-anxiety').textContent='3/10';
+  document.getElementById('retro-sleep').value=7;   document.getElementById('retro-val-sleep').textContent='7h';
+  document.getElementById('retro-exercise').checked=false;
+  document.getElementById('retro-study').checked=false;
+  document.getElementById('retro-main').checked=false;
+  toggleModal('modal-retro');
+}
+
+function guardarRetro() {
+  var btn = document.querySelector('#retro-form .btn-primary');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  var data = {
+    date:           document.getElementById('retro-date').value,
+    energy:         document.getElementById('retro-energy').value,
+    mood:           document.getElementById('retro-mood').value,
+    clarity:        document.getElementById('retro-clarity').value,
+    anxiety:        document.getElementById('retro-anxiety').value,
+    sleep_hours:    document.getElementById('retro-sleep').value,
+    did_exercise:   document.getElementById('retro-exercise').checked ? 1 : 0,
+    did_study:      document.getElementById('retro-study').checked ? 1 : 0,
+    completed_main: document.getElementById('retro-main').checked ? 1 : 0,
+  };
+
+  apiFetch('/checkin/quick', { method: 'POST', body: data })
+  .then(function() {
+    toggleModal('modal-retro');
+    showToast('Check-in retroactivo guardado', 'success');
+    setTimeout(function() { location.reload(); }, 700);
+  })
+  .catch(function() {
+    btn.disabled = false;
+    btn.textContent = 'Guardar ese día';
+  });
+}
+</script>
+
+<%- include('partials/footer') %>

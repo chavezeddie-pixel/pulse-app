@@ -1,0 +1,150 @@
+<%- include('partials/header') %>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Reportes</h1>
+    <p class="page-subtitle">Análisis de tu rendimiento y progreso</p>
+  </div>
+  <div class="period-tabs">
+    <a href="/reports?period=day" class="period-tab <%= period==='day' ? 'active' : '' %>">Hoy</a>
+    <a href="/reports?period=week" class="period-tab <%= period==='week' ? 'active' : '' %>">Semana</a>
+    <a href="/reports?period=month" class="period-tab <%= period==='month' ? 'active' : '' %>">Mes</a>
+  </div>
+</div>
+
+<% if (alerts && alerts.length > 0) { %>
+<div class="alerts-container" style="margin-bottom:1.5rem">
+  <% alerts.forEach(a => { %>
+  <div class="alert alert-<%= a.type %>">⚠ <%= a.message %></div>
+  <% }) %>
+</div>
+<% } %>
+
+<div class="grid-4" style="margin-bottom:1.5rem">
+  <div class="metric-card">
+    <div class="metric-label">Chequeos registrados</div>
+    <div class="metric-value"><%= summary.totalCheckins %></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Días con ejercicio</div>
+    <div class="metric-value"><%= summary.exerciseDays %><span class="metric-unit">/<%= summary.totalCheckins %></span></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Días con estudio</div>
+    <div class="metric-value"><%= summary.studyDays %><span class="metric-unit">/<%= summary.totalCheckins %></span></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Bloque principal</div>
+    <div class="metric-value"><%= summary.mainBlockDays %><span class="metric-unit">/<%= summary.totalCheckins %></span></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Energía promedio</div>
+    <div class="metric-value"><%= summary.avgEnergy %><span class="metric-unit">/10</span></div>
+    <div class="metric-bar"><div class="metric-fill" style="width:<%= summary.avgEnergy * 10 %>%"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Ánimo promedio</div>
+    <div class="metric-value"><%= summary.avgMood %><span class="metric-unit">/10</span></div>
+    <div class="metric-bar"><div class="metric-fill" style="width:<%= summary.avgMood * 10 %>%"></div></div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Claridad promedio</div>
+    <div class="metric-value"><%= summary.avgClarity %><span class="metric-unit">/10</span></div>
+    <div class="metric-bar"><div class="metric-fill" style="width:<%= summary.avgClarity * 10 %>%"></div></div>
+  </div>
+  <div class="metric-card metric-card--warn">
+    <div class="metric-label">Ansiedad promedio</div>
+    <div class="metric-value"><%= summary.avgAnxiety %><span class="metric-unit">/10</span></div>
+    <div class="metric-bar"><div class="metric-fill metric-fill--warn" style="width:<%= summary.avgAnxiety * 10 %>%"></div></div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem">
+  <div class="card-header"><h2 class="card-title">Evolución de Métricas</h2></div>
+  <% if (checkins.length > 1) { %>
+  <div style="height:300px;position:relative">
+    <canvas id="metricsChart"></canvas>
+  </div>
+  <% } else { %>
+  <div class="empty-card">
+    <p>Registra más chequeos para ver los gráficos.</p>
+    <a href="/checkin" class="btn btn-primary" style="margin-top:1rem">Registrar chequeo de hoy</a>
+  </div>
+  <% } %>
+</div>
+
+<div class="two-col" style="margin-bottom:1.5rem">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">💪 Fortalezas</h2>
+      <span class="badge badge-green">7 días</span>
+    </div>
+    <% if (strengths.length === 0) { %>
+      <p class="empty-state">Sin hábitos con alta consistencia aún.</p>
+    <% } else { %>
+      <% strengths.forEach(h => { %>
+      <div class="strength-item">
+        <div class="strength-top">
+          <span class="habit-area-tag"><%= h.area %></span>
+          <span class="strength-rate"><%= h.rate7 %>%</span>
+        </div>
+        <div class="strength-name"><%= h.name %></div>
+        <div class="metric-bar" style="margin-top:.4rem"><div class="metric-fill" style="width:<%= h.rate7 %>%"></div></div>
+      </div>
+      <% }) %>
+    <% } %>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">⚠️ Áreas Débiles</h2>
+      <span class="badge badge-warn">Reforzar</span>
+    </div>
+    <% if (weaknesses.length === 0) { %>
+      <p class="empty-state">Sin hábitos críticos. Buen trabajo.</p>
+    <% } else { %>
+      <% weaknesses.forEach(h => { %>
+      <div class="strength-item">
+        <div class="strength-top">
+          <span class="habit-area-tag"><%= h.area %></span>
+          <span class="strength-rate text-warn"><%= h.rate7 %>%</span>
+        </div>
+        <div class="strength-name"><%= h.name %></div>
+        <div class="metric-bar" style="margin-top:.4rem"><div class="metric-fill metric-fill--warn" style="width:<%= h.rate7 %>%"></div></div>
+      </div>
+      <% }) %>
+    <% } %>
+  </div>
+</div>
+
+<% if (checkins.length > 1) { %>
+<script>
+window.addEventListener('load', function() {
+  var CHART_DATA = <%- chartData %>;
+  var ctx = document.getElementById('metricsChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: CHART_DATA.labels,
+      datasets: [
+        { label: 'Energía',  data: CHART_DATA.energy,  borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,.08)',  tension:.4, pointRadius:4, borderWidth:2 },
+        { label: 'Ánimo',    data: CHART_DATA.mood,    borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.08)', tension:.4, pointRadius:4, borderWidth:2 },
+        { label: 'Claridad', data: CHART_DATA.clarity, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.08)', tension:.4, pointRadius:4, borderWidth:2 },
+        { label: 'Ansiedad', data: CHART_DATA.anxiety, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.08)',  tension:.4, pointRadius:4, borderWidth:2 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 1, max: 10, grid: { color: 'rgba(255,255,255,0.05)' } },
+        x: { grid: { display: false } }
+      },
+      plugins: {
+        legend: { position: 'top', labels: { usePointStyle: true, padding: 20, color: '#9ca3af' } }
+      }
+    }
+  });
+});
+</script>
+<% } %>
+<%- include('partials/footer') %>

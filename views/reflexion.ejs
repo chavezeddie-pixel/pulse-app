@@ -1,0 +1,658 @@
+<%- include('partials/header') %>
+
+<style>
+/* ── LAYOUT ─────────────────────────────────────────── */
+.ref-layout { display:grid; grid-template-columns:1fr 280px; gap:1.5rem; align-items:start; }
+@media(max-width:860px){ .ref-layout{ grid-template-columns:1fr; } }
+
+/* ── WIZARD PROGRESS ─────────────────────────────────── */
+.wiz-steps {
+  display:flex; align-items:center; gap:0;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.65rem 1rem;
+  margin-bottom:1.25rem; overflow-x:auto;
+}
+.wiz-step {
+  display:flex; align-items:center; gap:.45rem;
+  flex:1; min-width:0; white-space:nowrap;
+}
+.wiz-step-dot {
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.72rem; font-weight:700; font-family:var(--font-mono);
+  background:var(--surface-2); border:2px solid var(--border); color:var(--text-muted);
+  transition:all .25s;
+}
+.wiz-step.active .wiz-step-dot { background:var(--accent); border-color:var(--accent); color:#fff; }
+.wiz-step.done   .wiz-step-dot { background:var(--green-dim); border-color:var(--green); color:var(--green); }
+.wiz-step-lbl { font-size:.72rem; color:var(--text-muted); transition:color .2s; }
+.wiz-step.active .wiz-step-lbl { color:var(--text); font-weight:600; }
+.wiz-step.done   .wiz-step-lbl { color:var(--green); }
+.wiz-sep { width:24px; height:2px; background:var(--border); flex-shrink:0; margin:0 .25rem; border-radius:2px; }
+.wiz-sep.done-sep { background:var(--green); }
+
+/* ── STEP PANELS ─────────────────────────────────────── */
+.ref-step { display:none; }
+.ref-step.active { display:block; }
+
+/* Step header */
+.step-hdr {
+  display:flex; align-items:center; gap:.75rem;
+  margin-bottom:1.1rem; padding-bottom:.75rem;
+  border-bottom:1px solid var(--border);
+}
+.step-icon { font-size:1.5rem; line-height:1; }
+.step-title { font-size:1.05rem; font-weight:700; }
+.step-sub   { font-size:.75rem; color:var(--text-muted); margin-top:.1rem; }
+
+/* ── OPTION CARDS ────────────────────────────────────── */
+.ops-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.5rem; margin-top:.5rem; }
+.op-card {
+  display:flex; align-items:center; gap:.6rem;
+  padding:.6rem .8rem;
+  background:var(--surface-2); border:1.5px solid var(--border);
+  border-radius:var(--radius); cursor:pointer; font-size:.82rem;
+  color:var(--text-soft); transition:all .15s; line-height:1.3;
+  user-select:none;
+}
+.op-card input { display:none; }
+.op-card:hover { border-color:var(--border-2); color:var(--text); }
+.op-card.checked {
+  background:var(--accent-dim); border-color:var(--accent);
+  color:var(--accent); font-weight:600;
+}
+.op-card.checked-red   { background:var(--red-dim);   border-color:var(--red);   color:var(--red);   font-weight:600; }
+.op-card.checked-green { background:var(--green-dim); border-color:var(--green); color:var(--green); font-weight:600; }
+.op-emoji { font-size:1.1rem; flex-shrink:0; }
+
+/* ── SLIDERS ─────────────────────────────────────────── */
+.slider-block { margin-bottom:1.1rem; }
+.slider-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
+.slider-name { font-size:.82rem; font-weight:600; }
+.slider-num {
+  font-family:var(--font-mono); font-size:1rem; font-weight:700;
+  padding:.1rem .5rem; border-radius:6px; min-width:44px; text-align:center;
+  transition:background .2s, color .2s;
+}
+.slider-emoji { font-size:.9rem; margin-right:.2rem; }
+.slider-track {
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:8px; border-radius:4px;
+  outline:none; cursor:pointer; transition:accent-color .2s;
+}
+.slider-track::-webkit-slider-thumb {
+  -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+  background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.4); cursor:pointer;
+}
+.slider-ends { display:flex; justify-content:space-between; font-size:.65rem; color:var(--text-muted); margin-top:.25rem; }
+
+/* ── FAMLIA STARS ────────────────────────────────────── */
+.fam-row { display:flex; gap:.5rem; margin-top:.4rem; align-items:center; }
+.fam-btn {
+  width:40px; height:40px; border-radius:50%;
+  border:2px solid var(--border); background:var(--surface-2);
+  font-size:1rem; cursor:pointer; transition:all .15s;
+  display:flex; align-items:center; justify-content:center;
+}
+.fam-btn.active { background:var(--accent-dim); border-color:var(--accent); }
+
+/* ── NAV BUTTONS ─────────────────────────────────────── */
+.wiz-nav { display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem; }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.ref-sidebar { display:flex; flex-direction:column; gap:.85rem; }
+.ref-side-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.9rem 1rem;
+}
+.ref-side-title { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--text-muted); margin-bottom:.7rem; }
+
+/* Score ring */
+.score-day-ring { display:flex; flex-direction:column; align-items:center; padding:.5rem 0; }
+
+/* Summary rows */
+.sum-r { display:flex; justify-content:space-between; align-items:center; padding:.3rem 0; border-bottom:1px solid var(--border); font-size:.8rem; }
+.sum-r:last-child { border-bottom:none; }
+.sum-key { color:var(--text-muted); }
+.sum-v { font-family:var(--font-mono); font-weight:700; }
+
+/* Sparkline */
+.spark7 { display:flex; align-items:flex-end; gap:3px; height:40px; margin-top:.35rem; }
+.spark7-bar { flex:1; border-radius:2px 2px 0 0; min-height:4px; transition:height .3s; }
+
+/* Reflexion mini list */
+.ref-mini-item { padding:.35rem 0; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:.5rem; }
+.ref-mini-item:last-child { border-bottom:none; }
+.ref-mini-fecha { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); min-width:42px; }
+.ref-mini-sat { font-family:var(--font-mono); font-size:.72rem; font-weight:700; }
+
+/* ── SUCCESS ─────────────────────────────────────────── */
+.ref-success {
+  display:none; text-align:center; padding:2.5rem 1rem;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+}
+.ref-success-icon { font-size:3rem; margin-bottom:.75rem; }
+.ref-success-title { font-size:1.1rem; font-weight:700; margin-bottom:.5rem; }
+.ref-success-sub { font-size:.82rem; color:var(--text-muted); }
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Reflexión del Día</h1>
+    <p class="page-subtitle">Cierre guiado · <%= today %>
+      <% if (locals.rachaRef && rachaRef > 1) { %> · 🔥 <strong><%= rachaRef %></strong> días seguidos<% } %>
+    </p>
+  </div>
+  <% if (locals.reflexion && reflexion) { %>
+  <span class="badge badge-green">✓ Ya completado hoy</span>
+  <% } %>
+</div>
+
+<div class="ref-layout">
+
+  <!-- FORMULARIO WIZARD -->
+  <div>
+
+    <!-- Step indicator -->
+    <div class="wiz-steps" id="wiz-steps">
+      <div class="wiz-step active" id="ws-1">
+        <div class="wiz-step-dot" id="wdot-1">1</div>
+        <div class="wiz-step-lbl">Energía</div>
+      </div>
+      <div class="wiz-sep" id="wsep-1"></div>
+      <div class="wiz-step" id="ws-2">
+        <div class="wiz-step-dot" id="wdot-2">2</div>
+        <div class="wiz-step-lbl">Productividad</div>
+      </div>
+      <div class="wiz-sep" id="wsep-2"></div>
+      <div class="wiz-step" id="ws-3">
+        <div class="wiz-step-dot" id="wdot-3">3</div>
+        <div class="wiz-step-lbl">Aprendizaje</div>
+      </div>
+      <div class="wiz-sep" id="wsep-3"></div>
+      <div class="wiz-step" id="ws-4">
+        <div class="wiz-step-dot" id="wdot-4">4</div>
+        <div class="wiz-step-lbl">Cierre</div>
+      </div>
+    </div>
+
+    <!-- STEP 1: ENERGÍA -->
+    <div class="ref-step active" id="step-1">
+      <div class="step-hdr">
+        <div class="step-icon">⚡</div>
+        <div>
+          <div class="step-title">Energía del día</div>
+          <div class="step-sub">¿Qué movió tu energía hoy?</div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">¿Qué te <span style="color:var(--red)">robó</span> más energía?</label>
+        <div class="ops-grid" id="ops-energia-roba">
+          <% [
+            {v:'El trabajo',          e:'💼'},
+            {v:'Problemas personales',e:'😔'},
+            {v:'Falta de sueño',      e:'😴'},
+            {v:'Redes sociales',      e:'📱'},
+            {v:'Preocupaciones',      e:'😰'},
+            {v:'Nada — buena energía',e:'✨'},
+          ].forEach(function(op){ %>
+          <label class="op-card <%= locals.reflexion&&reflexion.energia_roba===op.v?'checked-red':'' %>">
+            <input type="radio" name="energia_roba" value="<%= op.v %>"
+              <%= locals.reflexion&&reflexion.energia_roba===op.v?'checked':'' %>
+              onchange="pickOp(this,'checked-red')" />
+            <span class="op-emoji"><%= op.e %></span><span><%= op.v %></span>
+          </label>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="form-field" style="margin-top:.9rem">
+        <label class="field-label">¿Qué te <span style="color:var(--green)">dio</span> más energía?</label>
+        <div class="ops-grid" id="ops-energia-da">
+          <% [
+            {v:'El ejercicio',        e:'🏃'},
+            {v:'Lograr mis metas',    e:'🎯'},
+            {v:'Tiempo con familia',  e:'❤️'},
+            {v:'Aprender algo nuevo', e:'📚'},
+            {v:'El trabajo',          e:'💼'},
+            {v:'Descanso',            e:'🛋️'},
+          ].forEach(function(op){ %>
+          <label class="op-card <%= locals.reflexion&&reflexion.energia_da===op.v?'checked-green':'' %>">
+            <input type="radio" name="energia_da" value="<%= op.v %>"
+              <%= locals.reflexion&&reflexion.energia_da===op.v?'checked':'' %>
+              onchange="pickOp(this,'checked-green')" />
+            <span class="op-emoji"><%= op.e %></span><span><%= op.v %></span>
+          </label>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="wiz-nav">
+        <div></div>
+        <button type="button" class="btn btn-primary" onclick="goStep(2)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- STEP 2: PRODUCTIVIDAD -->
+    <div class="ref-step" id="step-2">
+      <div class="step-hdr">
+        <div class="step-icon">🎯</div>
+        <div>
+          <div class="step-title">Productividad</div>
+          <div class="step-sub">¿Qué avanzaste y qué te frenó?</div>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label class="field-label">¿Qué te <span style="color:var(--red)">frenó</span> hoy?</label>
+        <div class="ops-grid">
+          <% [
+            {v:'Redes sociales',       e:'📱'},
+            {v:'Interrupciones',       e:'🔔'},
+            {v:'Falta de claridad',    e:'🌫️'},
+            {v:'Procrastinación',      e:'⏳'},
+            {v:'Cansancio',            e:'😩'},
+            {v:'Nada — día enfocado',  e:'🔥'},
+          ].forEach(function(op){ %>
+          <label class="op-card <%= locals.reflexion&&reflexion.freno===op.v?'checked-red':'' %>">
+            <input type="radio" name="freno" value="<%= op.v %>"
+              <%= locals.reflexion&&reflexion.freno===op.v?'checked':'' %>
+              onchange="pickOp(this,'checked-red')" />
+            <span class="op-emoji"><%= op.e %></span><span><%= op.v %></span>
+          </label>
+          <% }); %>
+        </div>
+      </div>
+
+      <div class="form-field" style="margin-top:.9rem">
+        <label class="field-label">🏆 Logro más importante del día</label>
+        <textarea name="logro" rows="3" class="textarea"
+          placeholder="Aunque sea pequeño, algo salió bien hoy..."><%= locals.reflexion?reflexion.logro:'' %></textarea>
+      </div>
+
+      <div class="wiz-nav">
+        <button type="button" class="btn btn-ghost" onclick="goStep(1)">← Atrás</button>
+        <button type="button" class="btn btn-primary" onclick="goStep(3)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: APRENDIZAJE -->
+    <div class="ref-step" id="step-3">
+      <div class="step-hdr">
+        <div class="step-icon">📚</div>
+        <div>
+          <div class="step-title">Aprendizaje y mejora</div>
+          <div class="step-sub">Lo que te llevas de hoy</div>
+        </div>
+      </div>
+
+      <div class="two-col" style="gap:.85rem">
+        <div class="form-field">
+          <label class="field-label">💡 ¿Qué aprendiste hoy?</label>
+          <textarea name="aprendizaje" rows="4" class="textarea"
+            placeholder="Algo concreto, por pequeño que sea..."><%= locals.reflexion?reflexion.aprendizaje:'' %></textarea>
+        </div>
+        <div class="form-field">
+          <label class="field-label">🔄 ¿Qué harías diferente mañana?</label>
+          <textarea name="diferente" rows="4" class="textarea"
+            placeholder="Una cosa concreta que cambiarías..."><%= locals.reflexion?reflexion.diferente:'' %></textarea>
+        </div>
+      </div>
+
+      <div class="wiz-nav">
+        <button type="button" class="btn btn-ghost" onclick="goStep(2)">← Atrás</button>
+        <button type="button" class="btn btn-primary" onclick="goStep(4)">Siguiente →</button>
+      </div>
+    </div>
+
+    <!-- STEP 4: CIERRE NUMÉRICO -->
+    <div class="ref-step" id="step-4">
+      <div class="step-hdr">
+        <div class="step-icon">📊</div>
+        <div>
+          <div class="step-title">Cierre del día</div>
+          <div class="step-sub">Ponle número a cómo fue</div>
+        </div>
+      </div>
+
+      <!-- Familia -->
+      <div class="form-field" style="margin-bottom:1.1rem">
+        <label class="field-label">❤️ ¿Cómo estuvo tu tiempo con familia / personas importantes?</label>
+        <div class="fam-row" id="fam-row">
+          <% var famEmojis = ['😞','😔','😐','😊','❤️']; %>
+          <% for(var fi=1; fi<=5; fi++) { %>
+          <button type="button" class="fam-btn <%= locals.reflexion&&reflexion.familia==fi?'active':'' %>"
+            onclick="setFamilia(<%= fi %>)" data-v="<%= fi %>" title="<%= fi %>/5">
+            <%= famEmojis[fi-1] %>
+          </button>
+          <% } %>
+          <span id="fam-label" style="font-size:.75rem;color:var(--text-muted);margin-left:.25rem">
+            <%= locals.reflexion&&reflexion.familia ? famEmojis[reflexion.familia-1]+' '+reflexion.familia+'/5' : 'sin calificar' %>
+          </span>
+        </div>
+        <input type="hidden" name="familia" id="fam-hidden" value="<%= locals.reflexion?reflexion.familia:3 %>" />
+      </div>
+
+      <!-- Sliders -->
+      <% [
+        {name:'satisfaccion',    label:'Satisfacción con el día', lo:'Pésimo',  hi:'Excelente', loE:'😩', color:'#f59e0b', val: locals.reflexion?reflexion.satisfaccion:5},
+        {name:'enfoque',         label:'Nivel de enfoque',        lo:'Disperso',hi:'Láser',     loE:'🌀', color:'#22c55e', val: locals.reflexion?reflexion.enfoque:5},
+        {name:'claridad_cierre', label:'Claridad mental',         lo:'Confuso', hi:'Muy claro', loE:'💎', color:'#38bdf8', val: locals.reflexion?reflexion.claridad_cierre:5},
+      ].forEach(function(s){
+        var snBg  = s.val>=7?'rgba(34,197,94,.15)':s.val>=4?'rgba(245,158,11,.15)':'rgba(239,68,68,.15)';
+        var snCol = s.val>=7?'var(--green)':s.val>=4?'var(--accent)':'var(--red)';
+      %>
+      <div class="slider-block">
+        <div class="slider-top">
+          <span class="slider-name"><span class="slider-emoji"><%= s.loE %></span> <%= s.label %></span>
+          <span class="slider-num" id="snum-<%= s.name %>" style="background:<%= snBg %>;color:<%= snCol %>">
+            <%= s.val %>/10
+          </span>
+        </div>
+        <input type="range" class="slider-track" name="<%= s.name %>"
+          id="sl-<%= s.name %>"
+          min="1" max="10" step="1" value="<%= s.val %>"
+          style="accent-color:<%= s.color %>"
+          oninput="updateSlider('<%= s.name %>',this.value)" />
+        <div class="slider-ends">
+          <span><%= s.lo %></span>
+          <span>1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10</span>
+          <span><%= s.hi %></span>
+        </div>
+      </div>
+      <% }); %>
+
+      <!-- Score del día -->
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.85rem 1.1rem;margin:1rem 0;display:flex;align-items:center;gap:1rem">
+        <div style="flex:1">
+          <div style="font-size:.7rem;color:var(--text-muted);margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.07em">Score del día</div>
+          <div id="score-day-val" style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700">—</div>
+        </div>
+        <div id="score-day-emoji" style="font-size:2rem">😐</div>
+      </div>
+
+      <div class="wiz-nav">
+        <button type="button" class="btn btn-ghost" onclick="goStep(3)">← Atrás</button>
+        <button type="button" class="btn btn-primary" id="btn-guardar" onclick="guardarReflexion()">
+          <%= locals.reflexion&&reflexion ? '💾 Actualizar' : '✓ Guardar Reflexión' %>
+        </button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="ref-success" id="ref-success">
+      <div class="ref-success-icon">🎉</div>
+      <div class="ref-success-title">¡Reflexión guardada!</div>
+      <div class="ref-success-sub">Llevas <span id="suc-racha">—</span> días seguidos reflexionando.</div>
+      <div style="display:flex;gap:.75rem;justify-content:center;margin-top:1.25rem;flex-wrap:wrap">
+        <a href="/" class="btn btn-ghost">← Ir al Dashboard</a>
+        <a href="/reflexion/metricas" class="btn btn-primary">Ver métricas →</a>
+      </div>
+    </div>
+
+    <!-- hidden inputs (campos fuera de los steps) -->
+    <form id="ref-form" style="display:none">
+      <input type="hidden" name="fecha" value="<%= today %>" />
+    </form>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="ref-sidebar">
+
+    <!-- Racha -->
+    <div class="ref-side-card">
+      <div class="ref-side-title">Tu racha</div>
+      <div style="text-align:center;padding:.35rem 0">
+        <div style="font-size:2rem;font-family:var(--font-mono);font-weight:700;color:var(--accent)" id="racha-num">
+          <%= locals.rachaRef || 0 %>
+        </div>
+        <div style="font-size:.72rem;color:var(--text-muted)">días seguidos 🔥</div>
+      </div>
+    </div>
+
+    <!-- Si ya hay reflexión hoy, mostrar resumen -->
+    <% if (locals.reflexion && reflexion) { %>
+    <div class="ref-side-card">
+      <div class="ref-side-title">Guardado hoy</div>
+      <div class="sum-r"><span class="sum-key">Satisfacción</span>
+        <span class="sum-v" style="color:<%= reflexion.satisfaccion>=7?'var(--green)':reflexion.satisfaccion>=4?'var(--accent)':'var(--red)' %>"><%= reflexion.satisfaccion %>/10</span>
+      </div>
+      <div class="sum-r"><span class="sum-key">Enfoque</span>
+        <span class="sum-v"><%= reflexion.enfoque %>/10</span>
+      </div>
+      <div class="sum-r"><span class="sum-key">Claridad</span>
+        <span class="sum-v"><%= reflexion.claridad_cierre %>/10</span>
+      </div>
+      <% if (reflexion.energia_roba) { %>
+      <div class="sum-r"><span class="sum-key">Frenó</span>
+        <span style="font-size:.75rem;color:var(--red);max-width:130px;text-align:right"><%= reflexion.energia_roba %></span>
+      </div>
+      <% } %>
+      <% if (reflexion.energia_da) { %>
+      <div class="sum-r"><span class="sum-key">Impulsó</span>
+        <span style="font-size:.75rem;color:var(--green);max-width:130px;text-align:right"><%= reflexion.energia_da %></span>
+      </div>
+      <% } %>
+      <% if (reflexion.logro) { %>
+      <div style="margin-top:.6rem;padding:.5rem .65rem;background:var(--surface-2);border-left:3px solid var(--green);border-radius:0 var(--radius) var(--radius) 0">
+        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--green);margin-bottom:.2rem">Logro</div>
+        <div style="font-size:.78rem;color:var(--text-soft)"><%= reflexion.logro %></div>
+      </div>
+      <% } %>
+    </div>
+    <% } %>
+
+    <!-- Últimos 7 días sparkline -->
+    <% if (locals.ultimas7 && ultimas7.length > 0) { %>
+    <div class="ref-side-card">
+      <div class="ref-side-title">Últimos 7 días</div>
+      <div class="spark7">
+        <%
+          var daysMap = {};
+          ultimas7.forEach(function(r){ daysMap[r.fecha] = r; });
+          for(var di=6; di>=0; di--){
+            var dd = new Date(today); dd.setDate(dd.getDate()-di);
+            var dds = dd.toISOString().split('T')[0];
+            var rr = daysMap[dds];
+            var sat = rr ? rr.satisfaccion : 0;
+            var hPct = sat ? Math.round(sat/10*100) : 8;
+            var barCol = sat>=7?'var(--green)':sat>=4?'var(--accent)':sat>0?'var(--red)':'var(--surface-3)';
+        %>
+        <div class="spark7-bar" style="height:<%= hPct %>%;background:<%= barCol %>" title="<%= dds %>: <%= sat||'—' %>/10"></div>
+        <% } %>
+      </div>
+      <div style="font-size:.62rem;color:var(--text-muted);margin-top:.3rem;text-align:right">satisfacción</div>
+
+      <!-- Mini list -->
+      <div style="margin-top:.65rem">
+        <% ultimas7.slice().reverse().slice(0,4).forEach(function(r){ %>
+        <div class="ref-mini-item">
+          <span class="ref-mini-fecha"><%= r.fecha.slice(5) %></span>
+          <div style="flex:1;height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:<%= r.satisfaccion*10 %>%;background:<%= r.satisfaccion>=7?'var(--green)':r.satisfaccion>=4?'var(--accent)':'var(--red)' %>;border-radius:2px"></div>
+          </div>
+          <span class="ref-mini-sat" style="color:<%= r.satisfaccion>=7?'var(--green)':r.satisfaccion>=4?'var(--accent)':'var(--red)' %>"><%= r.satisfaccion %></span>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Para qué sirve -->
+    <div class="ref-side-card">
+      <div class="ref-side-title">Para qué sirve</div>
+      <div style="display:flex;flex-direction:column;gap:.35rem;font-size:.78rem;color:var(--text-soft)">
+        <div>⚡ Identifica qué drena y recarga tu energía</div>
+        <div>🎯 Registra logros aunque sean pequeños</div>
+        <div>📚 Consolida el aprendizaje del día</div>
+        <div>📊 Construye datos para ver tendencias</div>
+        <div style="margin-top:.25rem;font-size:.7rem;color:var(--text-muted)">Toma menos de 3 minutos.</div>
+      </div>
+    </div>
+
+    <a href="/reflexion/metricas" class="btn btn-ghost" style="text-align:center;font-size:.82rem">
+      📊 Ver métricas →
+    </a>
+
+  </div>
+</div>
+
+<script>
+var TODAY_REF = '<%= today %>';
+var currentStep = 1;
+var totalSteps  = 4;
+var famEmojis   = ['😞','😔','😐','😊','❤️'];
+
+// ── WIZARD NAVIGATION ────────────────────────────────
+function goStep(n) {
+  // hide current
+  document.getElementById('step-' + currentStep).classList.remove('active');
+  document.getElementById('ws-' + currentStep).classList.remove('active');
+
+  // mark done if going forward
+  if (n > currentStep) {
+    for (var i = currentStep; i < n; i++) {
+      document.getElementById('ws-' + i).classList.add('done');
+      document.getElementById('ws-' + i).classList.remove('active');
+      var sep = document.getElementById('wsep-' + i);
+      if (sep) sep.classList.add('done-sep');
+      // checkmark dot
+      document.getElementById('wdot-' + i).textContent = '✓';
+    }
+  } else {
+    // going back: un-done
+    for (var j = n; j <= currentStep; j++) {
+      document.getElementById('ws-' + j).classList.remove('done');
+      var sep2 = document.getElementById('wsep-' + j);
+      if (sep2) sep2.classList.remove('done-sep');
+      document.getElementById('wdot-' + j).textContent = j;
+    }
+  }
+
+  currentStep = n;
+  document.getElementById('step-' + n).classList.add('active');
+  document.getElementById('ws-' + n).classList.add('active');
+
+  if (n === 4) updateScoreDay();
+
+  // scroll to top of wizard
+  document.getElementById('wiz-steps').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// ── OPTION PICKER ─────────────────────────────────────
+function pickOp(input, activeCls) {
+  var name = input.name;
+  document.querySelectorAll('input[name="' + name + '"]').forEach(function(i) {
+    i.closest('.op-card').classList.remove('checked','checked-red','checked-green');
+  });
+  input.closest('.op-card').classList.add(activeCls);
+}
+
+// ── FAMILIA ───────────────────────────────────────────
+function setFamilia(v) {
+  document.querySelectorAll('#fam-row .fam-btn').forEach(function(b){ b.classList.remove('active'); });
+  var btn = document.querySelector('#fam-row .fam-btn[data-v="'+v+'"]');
+  if (btn) btn.classList.add('active');
+  document.getElementById('fam-hidden').value = v;
+  var lbl = document.getElementById('fam-label');
+  if (lbl) lbl.textContent = famEmojis[v-1] + ' ' + v + '/5';
+}
+
+// ── SLIDERS ───────────────────────────────────────────
+function updateSlider(name, val) {
+  val = parseInt(val);
+  var el = document.getElementById('snum-' + name);
+  if (!el) return;
+  el.textContent = val + '/10';
+  if (val >= 7) {
+    el.style.background = 'rgba(34,197,94,.15)'; el.style.color = 'var(--green)';
+  } else if (val >= 4) {
+    el.style.background = 'rgba(245,158,11,.15)'; el.style.color = 'var(--accent)';
+  } else {
+    el.style.background = 'rgba(239,68,68,.15)'; el.style.color = 'var(--red)';
+  }
+  updateScoreDay();
+}
+
+function updateScoreDay() {
+  var sat = parseInt(document.getElementById('sl-satisfaccion')?.value    || 5);
+  var enf = parseInt(document.getElementById('sl-enfoque')?.value         || 5);
+  var cla = parseInt(document.getElementById('sl-claridad_cierre')?.value || 5);
+  var avg = ((sat + enf + cla) / 3).toFixed(1);
+  var el  = document.getElementById('score-day-val');
+  var em  = document.getElementById('score-day-emoji');
+  if (!el) return;
+  el.textContent = avg + '/10';
+  el.style.color = avg>=7 ? 'var(--green)' : avg>=4 ? 'var(--accent)' : 'var(--red)';
+  if (em) em.textContent = avg>=8?'🌟':avg>=6?'😊':avg>=4?'😐':'😔';
+}
+
+// ── GUARDAR AJAX ──────────────────────────────────────
+function guardarReflexion() {
+  var btn = document.getElementById('btn-guardar');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando...';
+
+  // Collect all form data across steps
+  var data = { fecha: TODAY_REF };
+
+  // From DOM
+  ['energia_roba','energia_da','freno'].forEach(function(n) {
+    var el = document.querySelector('input[name="'+n+'"]:checked');
+    data[n] = el ? el.value : '';
+  });
+  ['logro','aprendizaje','diferente'].forEach(function(n) {
+    var el = document.querySelector('textarea[name="'+n+'"]');
+    data[n] = el ? el.value : '';
+  });
+  data.familia = parseInt(document.getElementById('fam-hidden').value) || 3;
+  ['satisfaccion','enfoque','claridad_cierre'].forEach(function(n) {
+    var el = document.getElementById('sl-' + n);
+    data[n] = el ? parseInt(el.value) : 5;
+  });
+
+  progressStart();
+  fetch('/reflexion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify(data)
+  })
+  .then(function(r){ return r.json(); })
+  .then(function() {
+    progressDone();
+    showToast('✓ Reflexión guardada', 'success');
+    // Mark all steps done
+    for (var i = 1; i <= 4; i++) {
+      document.getElementById('ws-' + i).classList.add('done');
+      document.getElementById('ws-' + i).classList.remove('active');
+      document.getElementById('wdot-' + i).textContent = '✓';
+    }
+
+    // Show success
+    document.getElementById('step-4').style.display = 'none';
+    var suc = document.getElementById('ref-success');
+    suc.style.display = 'block';
+
+    var racha = parseInt(document.getElementById('racha-num').textContent || '0');
+    var rNum  = document.getElementById('suc-racha');
+    if (rNum) rNum.textContent = (racha + 1) + ' días';
+    if (document.getElementById('racha-num')) {
+      document.getElementById('racha-num').textContent = racha + 1;
+    }
+  })
+  .catch(function() {
+    progressDone();
+    btn.disabled = false;
+    btn.textContent = '✓ Guardar Reflexión';
+  });
+}
+
+// Init score
+updateScoreDay();
+</script>
+
+<%- include('partials/footer') %>

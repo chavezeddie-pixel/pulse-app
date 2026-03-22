@@ -1,0 +1,342 @@
+<%- include('partials/header') %>
+
+<style>
+/* ═══════════════════════════
+   MALOS HÁBITOS
+═══════════════════════════ */
+.malos-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:.75rem; }
+
+/* Summary strip */
+.malos-summary { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:.75rem; margin-bottom:1.5rem; }
+.mal-sum { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:.85rem 1rem; text-align:center; }
+.mal-sum .val { font-size:1.9rem; font-weight:700; line-height:1; margin-bottom:.2rem; }
+.mal-sum .lbl { font-size:.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+
+/* Cards grid */
+.malos-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem; }
+
+/* Card */
+.malo-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:1.1rem; transition:border-color .2s; }
+.malo-card.limpio { border-color:#22c55e44; }
+.malo-card.alerta { border-color:#ef444444; }
+
+.malo-top { display:flex; align-items:flex-start; gap:.5rem; margin-bottom:.65rem; }
+.malo-info { flex:1; min-width:0; }
+.malo-name { font-size:.95rem; font-weight:700; margin-bottom:.3rem; line-height:1.3; }
+.malo-tags { display:flex; gap:.35rem; flex-wrap:wrap; }
+.malo-cat { font-size:.65rem; background:var(--surface); border:1px solid var(--border); padding:.1rem .4rem; border-radius:99px; }
+.malo-impacto { font-size:.65rem; padding:.1rem .4rem; border-radius:99px; font-weight:700; }
+.imp-alta  { background:#ef444422; color:#ef4444; }
+.imp-media { background:#f59e0b22; color:#f59e0b; }
+.imp-baja  { background:#22c55e22; color:#22c55e; }
+
+/* Stats row */
+.malo-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; margin-bottom:.75rem; }
+.malo-stat { background:var(--surface); border-radius:8px; padding:.45rem; text-align:center; }
+.malo-stat .sv { font-size:1.1rem; font-weight:700; font-family:var(--font-mono); line-height:1; }
+.malo-stat .sl { font-size:.62rem; color:var(--text-muted); margin-top:.15rem; }
+
+/* 14-day grid */
+.malo-grid-wrap { margin-bottom:.75rem; }
+.malo-grid-label { font-size:.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.3rem; }
+.malo-grid { display:flex; gap:3px; }
+.malo-dot { flex:1; height:12px; border-radius:3px; min-width:8px; }
+
+/* Tendencia badge */
+.tend { display:inline-flex; align-items:center; gap:.25rem; font-size:.7rem; font-weight:600; padding:.15rem .45rem; border-radius:99px; }
+.tend-mejorando  { background:#22c55e22; color:#22c55e; }
+.tend-empeorando { background:#ef444422; color:#ef4444; }
+.tend-estable    { background:#6366f122; color:#6366f1; }
+
+/* Racha limpia */
+.racha-badge { display:inline-flex; align-items:center; gap:.25rem; font-size:.75rem; font-weight:700; padding:.2rem .55rem; border-radius:99px; background:#22c55e22; color:#22c55e; }
+
+/* Count buttons */
+.count-row { border-top:1px solid var(--border); padding-top:.7rem; }
+.count-label { font-size:.68rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.45rem; }
+.count-btns { display:flex; gap:.35rem; align-items:center; }
+.cnt-btn { width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+  background:var(--surface); border:1px solid var(--border); border-radius:9px;
+  cursor:pointer; font-family:var(--font-mono); font-size:.85rem; font-weight:700;
+  color:var(--text-muted); transition:all .15s; }
+.cnt-btn:hover { border-color:var(--border-2); color:var(--text); }
+.cnt-btn.zero.active { background:#22c55e22; border-color:#22c55e; color:#22c55e; }
+.cnt-btn.some.active { background:#ef444422; border-color:#ef4444; color:#ef4444; }
+.cnt-btn.many.active { background:#7f1d1d33; border-color:#ef4444; color:#ef4444; }
+
+/* Del btn */
+.malo-del { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:.2rem .35rem; border-radius:6px; font-size:.85rem; }
+.malo-del:hover { color:#ef4444; background:#ef444411; }
+
+/* Empty */
+.malos-empty { text-align:center; padding:3rem 1.5rem; background:var(--card); border:1px dashed var(--border); border-radius:14px; }
+.malos-empty .big-icon { font-size:3.5rem; margin-bottom:.75rem; }
+</style>
+
+<% var r = locals.resumen || {}; var today2 = locals.today || ''; %>
+
+<!-- Header -->
+<div class="malos-header">
+  <div>
+    <h1 class="page-title">☠️ Malos Hábitos</h1>
+    <p class="page-subtitle">Elimina lo que te frena</p>
+  </div>
+  <button class="btn btn-primary" onclick="openModal('modal-nuevo-malo')">+ Agregar</button>
+</div>
+
+<% if (malos.length === 0) { %>
+<div class="malos-empty">
+  <div class="big-icon">🧹</div>
+  <p style="font-size:.95rem;font-weight:600;margin-bottom:.4rem">Sin malos hábitos registrados</p>
+  <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:1.25rem">Agrega los comportamientos que quieres eliminar y empieza a trackearlo día a día.</p>
+  <button class="btn btn-primary" onclick="openModal('modal-nuevo-malo')">Agregar ahora</button>
+</div>
+
+<% } else { %>
+
+<!-- Summary -->
+<div class="malos-summary">
+  <div class="mal-sum">
+    <div class="val" style="color:<%= r.totalCaidasHoy===0?'#22c55e':'#ef4444' %>"><%= r.totalCaidasHoy %></div>
+    <div class="lbl">Caídas hoy</div>
+  </div>
+  <div class="mal-sum">
+    <div class="val" style="color:#f59e0b"><%= r.totalCaidas7 %></div>
+    <div class="lbl">Caídas · 7 días</div>
+  </div>
+  <div class="mal-sum">
+    <div class="val" style="color:#22c55e"><%= r.limpiosHoy %>/<%= r.total %></div>
+    <div class="lbl">Limpio hoy</div>
+  </div>
+  <div class="mal-sum">
+    <div class="val" style="color:#6366f1"><%= r.mejorRachaLimpia %><span style="font-size:1rem">🔥</span></div>
+    <div class="lbl">Mejor racha</div>
+  </div>
+</div>
+
+<!-- Cards -->
+<div class="malos-grid">
+  <% malos.forEach(m => {
+    const impCls = m.impacto >= 7 ? 'imp-alta' : m.impacto >= 4 ? 'imp-media' : 'imp-baja';
+    const impLbl = m.impacto >= 7 ? 'Impacto alto' : m.impacto >= 4 ? 'Impacto medio' : 'Impacto bajo';
+    const cardCls = m.vecesHoy === 0 ? 'limpio' : m.vecesHoy >= 3 ? 'alerta' : '';
+    const avg7 = (m.total7 / 7).toFixed(1);
+  %>
+  <div class="malo-card <%= cardCls %>" id="mcard-<%= m.id %>">
+
+    <!-- Top row -->
+    <div class="malo-top">
+      <div class="malo-info">
+        <div class="malo-name"><%= m.name %></div>
+        <div class="malo-tags">
+          <span class="malo-cat"><%= m.categoria %></span>
+          <span class="malo-impacto <%= impCls %>"><%= impLbl %> · <%= m.impacto %>/10</span>
+        </div>
+      </div>
+      <button class="malo-del" onclick="deleteMalo(<%= m.id %>)" title="Eliminar">✕</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="malo-stats">
+      <div class="malo-stat">
+        <div class="sv" id="vhoy-<%= m.id %>"
+          style="color:<%= m.vecesHoy===0?'#22c55e':m.vecesHoy>=3?'#ef4444':'#f59e0b' %>">
+          <%= m.vecesHoy %>
+        </div>
+        <div class="sl">Hoy</div>
+      </div>
+      <div class="malo-stat">
+        <div class="sv" style="color:<%= m.total7===0?'#22c55e':m.total7>7?'#ef4444':'var(--text)' %>"><%= m.total7 %></div>
+        <div class="sl">7 días</div>
+      </div>
+      <div class="malo-stat">
+        <div class="sv" id="racha-<%= m.id %>" style="color:#22c55e"><%= m.rachaLimpia %><span style="font-size:.7rem">🔥</span></div>
+        <div class="sl">Racha limpia</div>
+      </div>
+    </div>
+
+    <!-- 14-day grid -->
+    <div class="malo-grid-wrap">
+      <div class="malo-grid-label">Últimos 14 días</div>
+      <div class="malo-grid" id="grid-<%= m.id %>">
+        <% m.grid.forEach(g => {
+          const bg = g.veces === 0
+            ? '#22c55e55'
+            : g.veces === 1 ? '#f59e0b88'
+            : g.veces <= 3  ? '#ef444477'
+            : '#ef4444';
+          const title = g.date.slice(5) + ': ' + (g.veces===0?'limpio':g.veces+' veces');
+        %>
+        <div class="malo-dot" style="background:<%= bg %>" title="<%= title %>"></div>
+        <% }); %>
+      </div>
+    </div>
+
+    <!-- Tendencia + racha badges -->
+    <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-bottom:.75rem">
+      <span class="tend tend-<%= m.tendencia %>">
+        <%= m.tendencia==='mejorando'?'📉 Mejorando':m.tendencia==='empeorando'?'📈 Empeorando':'➡️ Estable' %>
+      </span>
+      <span style="font-size:.7rem;color:var(--text-muted)">Promedio: <%= avg7 %>/día</span>
+    </div>
+
+    <!-- Count buttons -->
+    <div class="count-row">
+      <div class="count-label">¿Cuántas veces hoy?</div>
+      <div class="count-btns">
+        <% [0,1,2,3,4,5].forEach(n => {
+          const cls = n===0?'zero':n<=2?'some':'many';
+          const isActive = m.vecesHoy === n;
+        %>
+        <button class="cnt-btn <%= cls %> <%= isActive?'active':'' %>"
+          id="cbtn-<%= m.id %>-<%= n %>"
+          onclick="logMalo(<%= m.id %>,<%= n %>,this)">
+          <%= n %>
+        </button>
+        <% }); %>
+        <span style="font-size:.72rem;color:var(--text-muted);margin-left:.2rem">veces</span>
+      </div>
+    </div>
+
+  </div>
+  <% }); %>
+</div>
+
+<% } %>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="modal-nuevo-malo" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>☠️ Agregar mal hábito</h3>
+      <button onclick="closeModal('modal-nuevo-malo')" class="modal-close">✕</button>
+    </div>
+    <form action="/malos" method="POST" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">¿Qué quieres eliminar?</label>
+        <input type="text" name="name" class="input" placeholder="Ej: Revisar redes antes de dormir" required autofocus />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Categoría</label>
+        <select name="categoria" class="input">
+          <option value="tecnologia">📱 Tecnología</option>
+          <option value="alimentacion">🍔 Alimentación</option>
+          <option value="sueño">😴 Sueño</option>
+          <option value="productividad">⚡ Productividad</option>
+          <option value="salud mental">🧠 Salud mental</option>
+          <option value="social">👥 Social</option>
+          <option value="general">🔄 General</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Impacto negativo en tu vida — <span id="imp-val-lbl" style="color:#ef4444;font-weight:700">5/10</span></label>
+        <input type="range" name="impacto" min="1" max="10" step="1" value="5"
+          style="width:100%;accent-color:#ef4444"
+          oninput="document.getElementById('imp-val-lbl').textContent=this.value+'/10'" />
+        <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--text-muted);margin-top:.2rem">
+          <span>Leve</span><span>Moderado</span><span>Muy dañino</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('modal-nuevo-malo')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var TODAY_MALOS = '<%= today2 %>';
+
+function openModal(id)  { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function closeOnOverlay(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+function toggleModal(id) { document.getElementById(id).classList.toggle('active'); }
+
+function logMalo(id, veces, btn) {
+  // Optimistic UI: mark active immediately
+  [0,1,2,3,4,5].forEach(n => {
+    var b = document.getElementById('cbtn-' + id + '-' + n);
+    if (b) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+
+  progressStart();
+  fetch('/malos/' + id + '/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-requested-with': 'XMLHttpRequest' },
+    body: JSON.stringify({ fecha: TODAY_MALOS, veces: veces })
+  })
+  .then(r => r.json())
+  .then(d => {
+    progressDone();
+    if (!d.ok) return;
+    showToast('Registrado', 'success', 1800);
+
+    // Update "Hoy" stat
+    var vEl = document.getElementById('vhoy-' + id);
+    if (vEl) {
+      vEl.textContent = veces;
+      vEl.style.color = veces===0?'#22c55e':veces>=3?'#ef4444':'#f59e0b';
+    }
+
+    // Update racha
+    var rEl = document.getElementById('racha-' + id);
+    if (rEl) rEl.innerHTML = d.rachaLimpia + '<span style="font-size:.7rem">🔥</span>';
+
+    // Update card border
+    var card = document.getElementById('mcard-' + id);
+    if (card) {
+      card.classList.remove('limpio','alerta');
+      if (veces === 0) card.classList.add('limpio');
+      else if (veces >= 3) card.classList.add('alerta');
+    }
+
+    // Update grid
+    var grid = document.getElementById('grid-' + id);
+    if (grid && d.grid) {
+      grid.innerHTML = d.grid.map(function(g) {
+        var bg = g.veces===0?'#22c55e55':g.veces===1?'#f59e0b88':g.veces<=3?'#ef444477':'#ef4444';
+        var ttl = g.date.slice(5) + ': ' + (g.veces===0?'limpio':g.veces+' veces');
+        return '<div class="malo-dot" style="background:' + bg + '" title="' + ttl + '"></div>';
+      }).join('');
+    }
+
+    // Update summary stats
+    updateSummary();
+  })
+  .catch(function() {
+    progressDone();
+    showToast('Error', 'error');
+  });
+}
+
+function updateSummary() {
+  // Re-fetch page data by reading current DOM values
+  var totalHoy = 0, limpios = 0;
+  document.querySelectorAll('[id^="vhoy-"]').forEach(function(el) {
+    var v = parseInt(el.textContent) || 0;
+    totalHoy += v;
+    if (v === 0) limpios++;
+  });
+  // Update display
+  var sumEls = document.querySelectorAll('.mal-sum .val');
+  if (sumEls[0]) {
+    sumEls[0].textContent = totalHoy;
+    sumEls[0].style.color = totalHoy === 0 ? '#22c55e' : '#ef4444';
+  }
+  if (sumEls[2]) sumEls[2].textContent = limpios + '/<%= malos.length %>';
+}
+
+function deleteMalo(id) {
+  if (!confirm('¿Eliminar este mal hábito y todo su historial?')) return;
+  fetch('/malos/' + id + '?_method=DELETE', {
+    method: 'POST',
+    headers: { 'x-requested-with': 'XMLHttpRequest' }
+  }).then(r => r.json()).then(d => {
+    if (d.ok) document.getElementById('mcard-' + id)?.remove();
+  });
+}
+</script>
+
+<%- include('partials/footer') %>

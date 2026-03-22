@@ -1,0 +1,862 @@
+<%- include('partials/header') %>
+
+<style>
+/* ═══════════════════════════════
+   DASHBOARD
+═══════════════════════════════ */
+
+/* ── Hero ── */
+.dash-hero {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius-xl);
+  padding:1.5rem 1.75rem;
+  margin-bottom:1.1rem;
+  box-shadow:var(--shadow-sm);
+  display:flex; align-items:center; gap:1.75rem; flex-wrap:wrap;
+  position:relative; overflow:hidden;
+}
+.dash-hero::before {
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, var(--accent), var(--green), var(--indigo));
+  opacity:.7;
+}
+.hero-score-wrap { flex-shrink:0; position:relative; }
+.hero-score-center {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  text-align:center; line-height:1;
+}
+.hero-info { flex:1; min-width:180px; }
+.hero-greeting { font-size:.65rem; text-transform:uppercase; letter-spacing:.12em; color:var(--text-muted); margin-bottom:.2rem; }
+.hero-date     { font-family:var(--font-mono); font-size:1.35rem; font-weight:700; line-height:1.1; margin-bottom:.5rem; }
+.hero-badges   { display:flex; gap:.4rem; flex-wrap:wrap; align-items:center; }
+.hero-actions  { display:flex; flex-direction:column; gap:.4rem; flex-shrink:0; }
+
+/* ── Vitals strip ── */
+.vitals-strip {
+  display:grid; grid-template-columns:repeat(5,1fr);
+  gap:.55rem; margin-bottom:1.1rem;
+}
+@media(max-width:700px){ .vitals-strip { grid-template-columns:repeat(3,1fr); } }
+@media(max-width:420px){ .vitals-strip { grid-template-columns:repeat(2,1fr); } }
+
+.vital-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.75rem .7rem;
+  display:flex; flex-direction:column; gap:.2rem;
+  box-shadow:var(--shadow-sm); position:relative; overflow:hidden;
+}
+.vital-card::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+}
+.vital-icon { font-size:1.1rem; line-height:1; margin-bottom:.05rem; }
+.vital-val  { font-family:var(--font-mono); font-size:1.35rem; font-weight:700; line-height:1; }
+.vital-lbl  { font-size:.6rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); }
+.vital-bar  { height:2px; background:var(--surface-3); border-radius:99px; overflow:hidden; margin-top:.35rem; }
+.vital-bar-fill { height:100%; border-radius:99px; }
+
+/* ── Coach banner ── */
+.coach-banner {
+  display:flex; align-items:flex-start; gap:.9rem;
+  padding:.95rem 1.1rem; border-radius:var(--radius-lg);
+  border:1px solid; margin-bottom:1.1rem; flex-wrap:wrap;
+}
+.coach-icon  { font-size:1.3rem; flex-shrink:0; margin-top:.1rem; }
+.coach-body  { flex:1; min-width:200px; }
+.coach-label { font-family:var(--font-mono); font-size:.58rem; text-transform:uppercase; letter-spacing:.1em; margin-bottom:.2rem; font-weight:700; }
+.coach-txt   { font-size:.84rem; line-height:1.55; color:var(--text-soft); }
+.coach-ask   { display:flex; gap:.4rem; align-items:center; flex-shrink:0; flex-wrap:wrap; }
+.coach-inp-wrap {
+  display:flex; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius); overflow:hidden; align-items:center;
+}
+.coach-inp-wrap input {
+  background:none; border:none; outline:none; color:var(--text);
+  font-family:var(--font-body); font-size:.81rem; padding:.38rem .7rem;
+  width:160px; min-width:0;
+}
+.coach-inp-wrap button {
+  background:var(--accent); border:none; padding:.38rem .65rem;
+  cursor:pointer; font-size:.82rem; color:#000; font-weight:700;
+  flex-shrink:0; transition:background var(--transition);
+}
+.coach-inp-wrap button:hover { background:var(--accent-hover); }
+.coach-resp {
+  display:none; background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.85rem 1.1rem;
+  margin-top:-.55rem; margin-bottom:1.1rem;
+  font-size:.84rem; color:var(--text-soft); line-height:1.65; position:relative;
+}
+
+/* ── Main grid ── */
+.dash-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:1rem; margin-bottom:1.1rem; align-items:start;
+}
+@media(max-width:960px){ .dash-grid { grid-template-columns:1fr 1fr; } }
+@media(max-width:600px){ .dash-grid { grid-template-columns:1fr; } }
+
+/* ── Habit items ── */
+.h-item {
+  display:flex; align-items:center; gap:.45rem;
+  padding:.32rem .4rem; border-radius:6px;
+  cursor:pointer; transition:background .12s; font-size:.82rem;
+  -webkit-tap-highlight-color:transparent;
+}
+.h-item:hover { background:var(--surface-2); }
+.h-item.done  { color:var(--text-muted); }
+.h-item.done .h-name { text-decoration:line-through; }
+.h-dot {
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid var(--border-2); display:flex; align-items:center;
+  justify-content:center; font-size:.54rem; font-weight:800;
+  flex-shrink:0; transition:all .18s;
+}
+.h-item.done .h-dot { background:var(--green); border-color:var(--green); color:#fff; }
+.h-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.hab-prog-bar { height:3px; background:var(--surface-3); border-radius:99px; overflow:hidden; margin-bottom:.55rem; }
+.hab-prog-fill { height:100%; border-radius:99px; transition:width .4s; }
+
+/* ── Task items ── */
+.dash-task {
+  display:flex; align-items:center; gap:.4rem;
+  padding:.3rem .4rem; border-radius:6px; font-size:.8rem;
+  border-left:2px solid var(--border-2);
+  background:var(--surface-2); margin-bottom:.28rem;
+}
+.dash-task.done { opacity:.38; border-left-color:var(--green); }
+.dash-task.done .dt-name { text-decoration:line-through; }
+.dt-hora { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); flex-shrink:0; }
+.dt-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* ── Obj mini ── */
+.obj-mini { display:flex; align-items:center; gap:.5rem; padding:.28rem .35rem; border-radius:6px; font-size:.79rem; }
+.obj-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+/* ── Rutina timeline ── */
+.tl-block { border:1px solid var(--border); border-radius:6px; padding:.25rem .45rem; font-size:.69rem; transition:all .2s; }
+.tl-block.now  { border-color:var(--accent); background:var(--accent-dim); color:var(--accent); font-weight:600; }
+.tl-block.past { opacity:.35; }
+
+/* ── Now card ── */
+.now-ring-wrap { flex-shrink:0; position:relative; }
+.now-ring-center {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  text-align:center; line-height:1;
+}
+
+/* ── Malo mini ── */
+.malo-mini {
+  display:flex; align-items:center; gap:.4rem;
+  padding:.3rem .4rem; border-radius:6px; font-size:.78rem;
+  background:var(--surface-2); border:1px solid var(--border); margin-bottom:.25rem;
+}
+.malo-badge { font-family:var(--font-mono); font-size:.68rem; font-weight:700; padding:.05rem .3rem; border-radius:99px; }
+
+/* ── Prox item ── */
+.prox-item {
+  display:flex; align-items:center; gap:.4rem;
+  padding:.3rem .35rem; border-radius:7px; font-size:.78rem;
+  background:var(--surface-2); border:1px solid var(--border); margin-bottom:.25rem;
+}
+.prox-lbl { font-size:.58rem; font-family:var(--font-mono); padding:.04rem .28rem; border-radius:99px; background:var(--accent-dim); color:var(--accent); white-space:nowrap; }
+
+/* ── Semana card ── */
+.semana-metrics { display:grid; grid-template-columns:repeat(4,1fr) auto; gap:.65rem; align-items:center; margin-bottom:.75rem; }
+@media(max-width:500px){ .semana-metrics { grid-template-columns:1fr 1fr; } }
+.s-met-lbl  { font-size:.65rem; color:var(--text-muted); margin-bottom:.2rem; }
+.s-met-val  { font-family:var(--font-mono); font-size:1.1rem; font-weight:700; line-height:1; }
+.s-met-bar  { height:3px; background:var(--surface-3); border-radius:99px; overflow:hidden; margin-top:.25rem; }
+#spark-wrap { position:relative; height:80px; }
+
+/* ── Quick check-in ── */
+.qci-grid { display:grid; grid-template-columns:1fr 1fr; gap:.55rem; margin-bottom:.55rem; }
+.qci-label { display:flex; justify-content:space-between; font-size:.68rem; color:var(--text-muted); margin-bottom:.15rem; }
+.qci-val   { font-family:var(--font-mono); font-size:.8rem; font-weight:700; }
+
+/* ── 30d grid ── */
+.sum30-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:.5rem; }
+@media(max-width:580px){ .sum30-grid { grid-template-columns:repeat(3,1fr); } }
+
+/* ── Coach metric tags (dashboard) ── */
+.cm-pill { display:inline-flex; align-items:center; gap:.3rem; padding:.12rem .45rem; border-radius:99px; font-size:.75rem; font-weight:700; font-family:var(--font-mono); margin:.1rem .1rem; vertical-align:middle; }
+.cm-bar-wrap { margin:.35rem 0; }
+.cm-bar-label { display:flex; justify-content:space-between; font-size:.75rem; margin-bottom:.2rem; }
+.cm-bar-track { height:6px; background:var(--surface-3); border-radius:99px; overflow:hidden; }
+.cm-bar-fill  { height:100%; border-radius:99px; transition:width .4s; }
+.cm-rx    { background:var(--indigo-dim); border-left:3px solid var(--indigo); padding:.5rem .75rem; border-radius:0 var(--radius) var(--radius) 0; font-size:.82rem; margin:.3rem 0; }
+.cm-alert { background:rgba(245,158,11,.08); border-left:3px solid var(--accent); padding:.5rem .75rem; border-radius:0 var(--radius) var(--radius) 0; font-size:.82rem; margin:.3rem 0; }
+.cm-ok    { background:var(--green-dim); border-left:3px solid var(--green); padding:.5rem .75rem; border-radius:0 var(--radius) var(--radius) 0; font-size:.82rem; margin:.3rem 0; }
+</style>
+
+<%
+var _ci      = locals.coachInsight || { texto: '', tipo: 'neutro' };
+var _ciColor = _ci.tipo==='positivo'?'var(--green)':_ci.tipo==='alerta'?'var(--accent)':'var(--indigo)';
+var _ciBg    = _ci.tipo==='positivo'?'rgba(34,197,94,.06)':_ci.tipo==='alerta'?'rgba(245,158,11,.06)':'rgba(99,102,241,.06)';
+var _ciBrd   = _ci.tipo==='positivo'?'rgba(34,197,94,.22)':_ci.tipo==='alerta'?'rgba(245,158,11,.25)':'rgba(99,102,241,.25)';
+var _wc      = locals.weekCheckins || [];
+var _tareas  = (locals.tareasHoy||[]).concat(locals.tareasAgendaHoy||[]);
+var _rep     = locals.reportSummary;
+var _racha   = locals.checkinRacha || 0;
+var tc       = locals.todayCheckin;
+var _score   = locals.generalScore || 0;
+var _scoreCol = _score>=70?'var(--green)':_score>=40?'var(--accent)':'var(--red)';
+%>
+
+<!-- ── ALERTAS ── -->
+<% if (alerts && alerts.length > 0) { %>
+<div style="margin-bottom:.9rem;display:flex;flex-direction:column;gap:.3rem">
+  <% alerts.forEach(function(a){ %><div class="alert alert-<%= a.type %>">⚠ <%= a.message %></div><% }); %>
+</div>
+<% } %>
+
+<!-- ══ HERO ══ -->
+<div class="dash-hero">
+  <!-- Score ring -->
+  <div class="hero-score-wrap">
+    <svg width="90" height="90" viewBox="0 0 90 90">
+      <circle cx="45" cy="45" r="36" fill="none" stroke="var(--surface-3)" stroke-width="7"/>
+      <circle cx="45" cy="45" r="36" fill="none"
+        stroke="<%= _scoreCol %>"
+        stroke-width="7" stroke-dasharray="226.2"
+        stroke-dashoffset="<%= Math.round(226.2*(1-_score/100)) %>"
+        stroke-linecap="round" transform="rotate(-90 45 45)"/>
+    </svg>
+    <div class="hero-score-center">
+      <div style="font-family:var(--font-mono);font-size:1.35rem;font-weight:700;color:<%= _scoreCol %>"><%= _score||'—' %></div>
+      <div style="font-size:.52rem;color:var(--text-muted)">/100</div>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="hero-info">
+    <div class="hero-greeting">MI ESTADO HOY</div>
+    <div class="hero-date" id="fecha-reloj">—</div>
+    <div class="hero-badges">
+      <% if (tc) { %>
+      <span class="badge badge-green" style="font-size:.66rem">✓ Chequeo registrado</span>
+      <% } else { %>
+      <span class="badge badge-muted" style="font-size:.66rem">Sin chequeo hoy</span>
+      <% } %>
+      <% if (_racha > 0) { %>
+      <span style="display:inline-flex;align-items:center;gap:.25rem;padding:.18rem .5rem;border-radius:99px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);font-size:.68rem;font-family:var(--font-mono);font-weight:700;color:var(--accent)">
+        🔥 <%= _racha %>d
+      </span>
+      <% } %>
+      <% if (tc && tc.sleep_hours) { %>
+      <span style="font-size:.7rem;color:var(--text-muted)">😴 <%= tc.sleep_hours %>h</span>
+      <% } %>
+      <span style="font-size:.75rem;font-weight:600;color:<%= _scoreCol %>">
+        <%= _score>=80?'Excelente 🚀':_score>=65?'Muy bien 😊':_score>=50?'Bien 🙂':_score>=35?'Regular 😐':tc?'Difícil 😔':'Sin datos' %>
+      </span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="hero-actions">
+    <a href="/checkin" class="btn btn-primary btn-sm" style="white-space:nowrap">
+      <%= tc ? '✏️ Editar chequeo' : '+ Chequeo de hoy' %>
+    </a>
+    <a href="/mejora" class="btn btn-ghost btn-sm" style="font-size:.74rem;text-align:center">Ver análisis →</a>
+  </div>
+</div>
+
+<!-- ══ VITALS ══ -->
+<%
+var vitals = [
+  { icon:'⚡', val: tc?tc.energy:'—',           lbl:'Energía',  color:'#f59e0b', pct: tc?tc.energy*10:0 },
+  { icon:'😊', val: tc?tc.mood:'—',             lbl:'Ánimo',    color:'#a78bfa', pct: tc?tc.mood*10:0 },
+  { icon:'🧠', val: tc?tc.clarity:'—',          lbl:'Claridad', color:'#38bdf8', pct: tc?tc.clarity*10:0 },
+  { icon:'😰', val: tc?tc.anxiety:'—',          lbl:'Ansiedad', color: tc&&tc.anxiety>=7?'#ef4444':'#22c55e', pct: tc?(10-tc.anxiety)*10:0 },
+  { icon:'😴', val: tc?(tc.sleep_hours+'h'):'—',lbl:'Sueño',    color: tc&&tc.sleep_hours>=7?'#22c55e':tc&&tc.sleep_hours>=6?'#f59e0b':'#ef4444', pct: tc?Math.min(100,tc.sleep_hours/9*100):0 },
+];
+%>
+<div class="vitals-strip">
+<% vitals.forEach(function(v) { %>
+<div class="vital-card" style="border-bottom:2px solid <%= v.color %>22">
+  <div class="vital-icon"><%= v.icon %></div>
+  <div class="vital-val" style="color:<%= v.color %>">
+    <%= v.val %><% if(v.val !== '—' && v.lbl !== 'Sueño'){ %><span style="font-size:.65rem;color:var(--text-muted)">/10</span><% } %>
+  </div>
+  <div class="vital-lbl"><%= v.lbl %></div>
+  <div class="vital-bar"><div class="vital-bar-fill" style="width:<%= v.pct %>%;background:<%= v.color %>"></div></div>
+</div>
+<% }); %>
+</div>
+
+<!-- ══ COACH BANNER ══ -->
+<div class="coach-banner" style="background:<%= _ciBg %>;border-color:<%= _ciBrd %>">
+  <div class="coach-icon"><%= _ci.tipo==='positivo'?'🟢':_ci.tipo==='alerta'?'⚠️':'🧠' %></div>
+  <div class="coach-body">
+    <div class="coach-label" style="color:<%= _ciColor %>">Coach · Insight del día</div>
+    <div class="coach-txt"><%= _ci.texto %></div>
+  </div>
+  <div class="coach-ask">
+    <div class="coach-inp-wrap">
+      <input type="text" id="dash-chat-inp" placeholder="Pregunta al coach…" maxlength="200"
+        onkeydown="if(event.key==='Enter')dashCoachSend()" />
+      <button onclick="dashCoachSend()">→</button>
+    </div>
+    <a href="/coach" class="btn btn-ghost btn-sm" style="font-size:.74rem;white-space:nowrap">Completo →</a>
+  </div>
+</div>
+<div class="coach-resp" id="dash-coach-resp">
+  <button onclick="this.parentElement.style.display='none'" style="position:absolute;top:.5rem;right:.65rem;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem">✕</button>
+  <div style="font-family:var(--font-mono);font-size:.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:.35rem">🧠 Coach responde</div>
+  <div id="dash-coach-resp-txt"></div>
+</div>
+
+<!-- ══ MAIN 3-COL GRID ══ -->
+<div class="dash-grid">
+
+  <!-- AHORA -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">🕐 Ahora</h2>
+      <a href="/rutina" class="btn btn-ghost btn-sm" style="font-size:.7rem">Rutina →</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:.85rem;margin-bottom:.65rem">
+      <div class="now-ring-wrap">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="20" fill="none" stroke="var(--surface-3)" stroke-width="5"/>
+          <circle id="progreso-arc" cx="26" cy="26" r="20" fill="none" stroke="var(--accent)"
+            stroke-width="5" stroke-dasharray="125.7" stroke-dashoffset="125.7"
+            stroke-linecap="round" transform="rotate(-90 26 26)"/>
+        </svg>
+        <div class="now-ring-center">
+          <span id="progreso-pct" style="font-family:var(--font-mono);font-size:.52rem;color:var(--text-muted)">—</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:.57rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">En curso</div>
+        <div id="bloque-actual-nombre" style="font-size:.88rem;font-weight:600;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+        <div id="bloque-actual-hora" style="font-size:.65rem;color:var(--text-muted);margin-bottom:.25rem"></div>
+        <div style="font-size:.57rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Siguiente</div>
+        <div id="bloque-siguiente-nombre" style="font-size:.76rem;color:var(--text-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+        <div id="bloque-siguiente-hora" style="font-size:.62rem;color:var(--text-muted)"></div>
+      </div>
+    </div>
+    <div id="rutina-timeline" style="display:flex;flex-wrap:wrap;gap:.3rem;padding-top:.6rem;border-top:1px solid var(--border)">
+      <span style="font-size:.72rem;color:var(--text-muted)">Cargando…</span>
+    </div>
+  </div>
+
+  <!-- HÁBITOS -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">✅ Hábitos</h2>
+      <div style="display:flex;align-items:center;gap:.45rem">
+        <span style="font-family:var(--font-mono);font-size:.7rem;color:<%= habitCompletionToday>=70?'var(--green)':habitCompletionToday>=40?'var(--accent)':'var(--red)' %>"><%= habitCompletionToday %>%</span>
+        <a href="/habits" class="btn btn-ghost btn-sm" style="font-size:.7rem">Ver →</a>
+      </div>
+    </div>
+    <% if (habits.length === 0) { %>
+    <p class="empty-state">Sin hábitos. <a href="/habits">Crear →</a></p>
+    <% } else { %>
+    <div class="hab-prog-bar">
+      <div class="hab-prog-fill" style="width:<%= habitCompletionToday %>%;background:<%= habitCompletionToday>=70?'var(--green)':habitCompletionToday>=40?'var(--accent)':'var(--red)' %>"></div>
+    </div>
+    <div style="font-size:.68rem;color:var(--text-muted);margin-bottom:.45rem"><%= completedToday.length %>/<%= habits.length %> completados hoy</div>
+    <div style="display:flex;flex-direction:column;gap:.02rem">
+      <% habits.slice(0,9).forEach(function(h){ %>
+      <div class="h-item <%= completedToday.includes(h.id)?'done':'' %>" id="dash-h-<%= h.id %>" onclick="dashToggle(<%= h.id %>)">
+        <div class="h-dot" id="dash-dot-<%= h.id %>"><%= completedToday.includes(h.id)?'✓':'' %></div>
+        <span class="h-name"><%= h.name %></span>
+        <% var st = habitStreaks.find(function(s){return s.name===h.name}); %>
+        <% if (st && st.streak>1) { %><span style="font-size:.6rem;color:var(--accent)">🔥<%= st.streak %>d</span><% } %>
+      </div>
+      <% }); %>
+      <% if (habits.length > 9) { %>
+      <div style="font-size:.68rem;color:var(--text-muted);padding:.15rem .4rem">+<%= habits.length-9 %> más</div>
+      <% } %>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- TAREAS + OBJETIVOS -->
+  <div>
+    <!-- Tareas hoy -->
+    <div class="card" style="margin-bottom:.75rem">
+      <div class="card-header">
+        <h2 class="card-title">📋 Tareas hoy</h2>
+        <a href="/agenda" class="btn btn-ghost btn-sm" style="font-size:.7rem">Agenda →</a>
+      </div>
+      <% if (_tareas.length === 0) { %>
+      <p class="empty-state">Sin tareas. <a href="/agenda">Agregar →</a></p>
+      <% } else { %>
+        <% _tareas.slice(0,6).forEach(function(t){ %>
+        <div class="dash-task <%= t.completado?'done':'' %>">
+          <span style="font-size:.75rem;flex-shrink:0;color:<%= t.completado?'var(--green)':'var(--text-muted)' %>"><%= t.completado?'✓':'○' %></span>
+          <% if (t.hora) { %><span class="dt-hora"><%= t.hora %></span><% } %>
+          <span class="dt-name"><%= t.nombre %></span>
+        </div>
+        <% }); %>
+        <% var _pend = _tareas.filter(function(t){return !t.completado}).length; %>
+        <div style="font-size:.7rem;margin-top:.3rem;color:<%= _pend===0?'var(--green)':'var(--text-muted)' %>">
+          <%= _pend===0?'✓ Todo completado':_pend+' pendiente'+((_pend>1)?'s':'') %>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Objetivos mini -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">🎯 Objetivos</h2>
+        <a href="/objectives" class="btn btn-ghost btn-sm" style="font-size:.7rem">Ver →</a>
+      </div>
+      <% if (weeklyObjs.length === 0 && monthlyObjs.length === 0) { %>
+      <p class="empty-state">Sin objetivos. <a href="/objectives">Agregar →</a></p>
+      <% } else { %>
+        <% if (weeklyObjs.length > 0) { %>
+        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.3rem">Esta semana</div>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem">
+          <div class="hab-prog-bar" style="flex:1;margin:0"><div class="hab-prog-fill" style="background:var(--accent);width:<%= weeklyTotal>0?Math.round(weeklyCompleted/weeklyTotal*100):0 %>%"></div></div>
+          <span style="font-size:.68rem;color:var(--text-muted);white-space:nowrap;font-family:var(--font-mono)"><%= weeklyCompleted %>/<%= weeklyTotal %></span>
+        </div>
+        <% weeklyObjs.slice(0,4).forEach(function(o){ %>
+        <div class="obj-mini">
+          <span class="obj-dot" style="background:<%= o.status==='completado'?'var(--green)':o.status==='en proceso'?'var(--accent)':o.status==='cancelado'?'var(--red)':'var(--border)' %>"></span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.79rem"><%= o.name %></span>
+        </div>
+        <% }); %>
+        <% } %>
+        <% if (monthlyObjs.length > 0) { %>
+        <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin:.5rem 0 .35rem;padding-top:.4rem;border-top:1px solid var(--border)">Este mes</div>
+        <% monthlyObjs.slice(0,3).forEach(function(o){ %>
+        <div class="obj-mini">
+          <span class="obj-dot" style="background:<%= o.status==='completado'?'var(--green)':o.status==='en proceso'?'var(--accent)':'var(--border)' %>"></span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.79rem"><%= o.name %></span>
+          <span style="font-size:.66rem;color:var(--text-muted);font-family:var(--font-mono)"><%= o.percentage||0 %>%</span>
+        </div>
+        <% }); %>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+</div><!-- end dash-grid -->
+
+<!-- ══ MALOS HÁBITOS + PRÓXIMAS ══ -->
+<%
+var _malosConHoy  = locals.malosConHoy || [];
+var _malosActivos = _malosConHoy.filter(function(m){ return m.vecesHoy > 0; });
+var _totalCaidas  = locals.totalCaidasHoy || 0;
+var _proximas2    = locals.proximasTareas || [];
+%>
+<% if (_malosConHoy.length > 0 || _proximas2.length > 0) { %>
+<div style="display:grid;grid-template-columns:<%= (_malosConHoy.length>0&&_proximas2.length>0)?'1fr 1fr':'1fr' %>;gap:1rem;margin-bottom:1.1rem">
+
+  <% if (_malosConHoy.length > 0) { %>
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">☠️ Malos hábitos</h2>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        <span style="font-family:var(--font-mono);font-size:.7rem;color:<%= _totalCaidas===0?'var(--green)':'var(--red)' %>"><%= _totalCaidas %> caída<%= _totalCaidas!==1?'s':'' %></span>
+        <a href="/malos" class="btn btn-ghost btn-sm" style="font-size:.7rem">Ver →</a>
+      </div>
+    </div>
+    <% if (_totalCaidas === 0) { %>
+    <div style="text-align:center;padding:.65rem;font-size:.82rem;color:var(--green)">✓ Limpio hoy</div>
+    <% } else { %>
+    <% _malosConHoy.slice(0,5).forEach(function(m) { %>
+    <div class="malo-mini">
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= m.name %></span>
+      <span class="malo-badge" style="background:<%= m.vecesHoy===0?'var(--green-dim)':m.vecesHoy<=2?'var(--accent-dim)':'var(--red-dim)' %>;color:<%= m.vecesHoy===0?'var(--green)':m.vecesHoy<=2?'var(--accent)':'var(--red)' %>">
+        <%= m.vecesHoy===0?'✓':m.vecesHoy+'×' %>
+      </span>
+    </div>
+    <% }); %>
+    <% } %>
+  </div>
+  <% } %>
+
+  <% if (_proximas2.length > 0) { %>
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">📅 Próximas</h2>
+      <a href="/agenda" class="btn btn-ghost btn-sm" style="font-size:.7rem">Agenda →</a>
+    </div>
+    <% _proximas2.forEach(function(t) {
+      var d = new Date(t.fecha+'T00:00:00');
+      var todayD = new Date(today+'T00:00:00');
+      var diff = Math.round((d-todayD)/86400000);
+      var lbl = diff===1?'Mañana':diff<=3?'En '+diff+'d':t.fecha.slice(5).replace('-','/');
+    %>
+    <div class="prox-item">
+      <span class="prox-lbl"><%= lbl %></span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= t.nombre %></span>
+      <% if (t.hora) { %><span style="font-size:.6rem;font-family:var(--font-mono);color:var(--text-muted)"><%= t.hora %></span><% } %>
+    </div>
+    <% }); %>
+  </div>
+  <% } %>
+
+</div>
+<% } %>
+
+<!-- ══ ESTA SEMANA ══ -->
+<div class="card" style="margin-bottom:1.1rem">
+  <div class="card-header">
+    <h2 class="card-title">📊 Esta semana</h2>
+    <a href="/mejora" class="btn btn-ghost btn-sm" style="font-size:.72rem">Análisis →</a>
+  </div>
+  <div class="semana-metrics">
+    <% [
+      {label:'Energía',  val:weekAvg.energy,  color:'#f59e0b'},
+      {label:'Ánimo',    val:weekAvg.mood,    color:'#a78bfa'},
+      {label:'Claridad', val:weekAvg.clarity, color:'#38bdf8'},
+      {label:'Ansiedad', val:weekAvg.anxiety, color:'#fb7185'},
+    ].forEach(function(m){ %>
+    <div>
+      <div class="s-met-lbl"><%= m.label %></div>
+      <div class="s-met-val" style="color:<%= m.color %>"><%= m.val %><span style="font-size:.58rem;color:var(--text-muted)">/10</span></div>
+      <div class="s-met-bar"><div style="height:100%;border-radius:99px;background:<%= m.color %>;width:<%= m.val*10 %>%"></div></div>
+    </div>
+    <% }); %>
+    <div style="display:flex;flex-direction:column;gap:.22rem;font-size:.76rem">
+      <% var _exD = _wc.filter(function(c){return c.did_exercise}).length; %>
+      <% var _stD = _wc.filter(function(c){return c.did_study}).length; %>
+      <div><%= _exD>=3?'💪':_exD===0?'❌':'⚡' %> <strong><%= _exD %>d</strong> ejercicio</div>
+      <div><%= _stD>=3?'📚':_stD===0?'❌':'📖' %> <strong><%= _stD %>d</strong> estudio</div>
+      <% if (_wc.length >= 2) { %>
+      <% var _eTrend = _wc[_wc.length-1].energy - _wc[0].energy; %>
+      <div style="color:<%= _eTrend>0?'var(--green)':_eTrend<0?'var(--red)':'var(--text-muted)' %>">
+        <%= _eTrend>0?'📈':_eTrend<0?'📉':'➡️' %> Energía <%= _eTrend>0?'+':'' %><%= _eTrend %>pts
+      </div>
+      <% } %>
+    </div>
+  </div>
+  <% if (_wc.length >= 2) { %>
+  <div id="spark-wrap"><canvas id="spark-chart" height="80"></canvas></div>
+  <% } %>
+</div>
+
+<!-- ══ CHECK-IN RÁPIDO ══ -->
+<div class="card" style="margin-bottom:1.1rem">
+  <div class="card-header" style="cursor:pointer" onclick="toggleQCI()">
+    <h2 class="card-title">⚡ Check-in rápido</h2>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <% if (tc) { %><span class="badge badge-green" style="font-size:.66rem">✓ Registrado</span><% } %>
+      <span id="qci-arrow" style="color:var(--text-muted);font-size:.8rem"><%= tc?'▸':'▾' %></span>
+    </div>
+  </div>
+  <div id="qci-panel" style="display:<%= tc?'none':'block' %>">
+    <div class="qci-grid">
+      <% [
+        {key:'energy', label:'Energía',  color:'#f59e0b', val: tc?tc.energy:7},
+        {key:'mood',   label:'Ánimo',    color:'#a78bfa', val: tc?tc.mood:7},
+        {key:'clarity',label:'Claridad', color:'#38bdf8', val: tc?tc.clarity:7},
+        {key:'anxiety',label:'Ansiedad', color:'#fb7185', val: tc?tc.anxiety:3},
+      ].forEach(function(m){ %>
+      <div>
+        <div class="qci-label">
+          <span><%= m.label %></span>
+          <span class="qci-val" id="val-<%= m.key %>" style="color:<%= m.color %>"><%= m.val %></span>
+        </div>
+        <input type="range" id="qci-<%= m.key %>" min="1" max="10" value="<%= m.val %>"
+          style="width:100%;accent-color:<%= m.color %>"
+          oninput="document.getElementById('val-<%= m.key %>').textContent=this.value" />
+      </div>
+      <% }); %>
+    </div>
+    <div style="display:flex;gap:.65rem;flex-wrap:wrap;margin-bottom:.55rem;font-size:.8rem">
+      <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer">
+        <input type="checkbox" id="qci-exercise" <%= tc&&tc.did_exercise?'checked':'' %> style="accent-color:var(--green)" /> 💪 Ejercicio
+      </label>
+      <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer">
+        <input type="checkbox" id="qci-study" <%= tc&&tc.did_study?'checked':'' %> style="accent-color:var(--accent)" /> 📚 Estudio
+      </label>
+      <label style="display:flex;align-items:center;gap:.3rem;cursor:pointer">
+        <input type="checkbox" id="qci-main" <%= tc&&tc.completed_main?'checked':'' %> style="accent-color:#a78bfa" /> ⭐ Bloque principal
+      </label>
+      <div style="display:flex;align-items:center;gap:.3rem">
+        😴 <input type="number" id="qci-sleep" min="1" max="12" step="0.5" value="<%= tc?tc.sleep_hours:7 %>"
+          style="width:46px;padding:.12rem .3rem;background:var(--surface-3);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:.8rem" />h
+      </div>
+    </div>
+    <div style="display:flex;gap:.4rem;align-items:center">
+      <button class="btn btn-primary btn-sm" onclick="guardarQuickCheckin()">Guardar</button>
+      <a href="/checkin" class="btn btn-ghost btn-sm">Detallado →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ÚLTIMOS 30 DÍAS ══ -->
+<% if (_rep && _rep.totalCheckins > 0) { %>
+<div class="card" style="margin-bottom:1.1rem">
+  <div class="card-header" style="cursor:pointer" onclick="toggleSec('sec-30','arr-30')">
+    <h2 class="card-title">📈 Últimos 30 días</h2>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <a href="/mejora" class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="event.stopPropagation()">Mejora →</a>
+      <span id="arr-30" style="color:var(--text-muted);font-size:.8rem">▸</span>
+    </div>
+  </div>
+  <div id="sec-30" style="display:none">
+    <div class="sum30-grid" style="margin-bottom:.7rem">
+      <% [
+        {label:'Energía',  val:_rep.avgEnergy,  color:'#f59e0b'},
+        {label:'Ánimo',    val:_rep.avgMood,    color:'#a78bfa'},
+        {label:'Claridad', val:_rep.avgClarity, color:'#38bdf8'},
+        {label:'Ansiedad', val:_rep.avgAnxiety, color:'#fb7185'},
+        {label:'Sueño',    val:_rep.avgSleep,   color:'var(--green)', unit:'h'},
+      ].forEach(function(m){ %>
+      <div class="metric-card" style="text-align:center">
+        <div class="metric-label"><%= m.label %></div>
+        <div style="font-family:var(--font-mono);font-size:1.2rem;font-weight:700;color:<%= m.color %>"><%= m.val %><span style="font-size:.6rem;color:var(--text-muted)"><%= m.unit||'/10' %></span></div>
+      </div>
+      <% }); %>
+    </div>
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;border-top:1px solid var(--border);padding-top:.6rem">
+      <% var _str=locals.strengths||[]; var _weak=locals.weaknesses||[]; %>
+      <span>💪 <strong><%= _rep.exerciseDays %>d</strong></span>
+      <span>📚 <strong><%= _rep.studyDays %>d</strong></span>
+      <span>📋 <strong><%= _rep.totalCheckins %></strong> chequeos</span>
+      <% if (_str.length>0) { %><span style="color:var(--green)">✓ <strong><%= _str.map(function(h){return h.name}).join(', ') %></strong></span><% } %>
+      <% if (_weak.length>0) { %><span style="color:var(--red)">⚠ <strong><%= _weak.map(function(h){return h.name}).join(', ') %></strong></span><% } %>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<!-- ══ HISTORIAL ══ -->
+<% if (weekCheckins && weekCheckins.length > 0) { %>
+<div class="card">
+  <div class="card-header" style="cursor:pointer" onclick="toggleSec('sec-hist','arr-hist')">
+    <h2 class="card-title">📋 Historial reciente</h2>
+    <span id="arr-hist" style="color:var(--text-muted);font-size:.8rem">▸</span>
+  </div>
+  <div id="sec-hist" style="display:none">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Fecha</th><th>Energía</th><th>Ánimo</th><th>Claridad</th><th>Ansiedad</th><th>Sueño</th><th>💪</th><th>📚</th></tr></thead>
+        <tbody>
+          <% weekCheckins.slice().reverse().forEach(function(c){ %>
+          <tr>
+            <td style="font-family:var(--font-mono);font-size:.72rem"><%= c.date %></td>
+            <td><span class="score-pill score-<%= c.energy>=7?'high':c.energy>=4?'mid':'low' %>"><%= c.energy %></span></td>
+            <td><span class="score-pill score-<%= c.mood>=7?'high':c.mood>=4?'mid':'low' %>"><%= c.mood %></span></td>
+            <td><span class="score-pill score-<%= c.clarity>=7?'high':c.clarity>=4?'mid':'low' %>"><%= c.clarity %></span></td>
+            <td><span class="score-pill score-<%= c.anxiety<=3?'high':c.anxiety<=6?'mid':'low' %>"><%= c.anxiety %></span></td>
+            <td style="font-size:.78rem"><%= c.sleep_hours %>h</td>
+            <td style="font-size:.78rem"><%= c.did_exercise?'✓':'—' %></td>
+            <td style="font-size:.78rem"><%= c.did_study?'✓':'—' %></td>
+          </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+var TODAY_DASH = '<%= today %>';
+var DIAS_KEY   = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+var DIAS_LABEL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+var rutina = {};
+
+// ── Rutina + reloj ──
+function cargarRutina() {
+  fetch('/rutina.json')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      rutina = d;
+      actualizarReloj();
+      renderTimeline(rutina[DIAS_KEY[new Date().getDay()]] || []);
+    })
+    .catch(function(){ actualizarReloj(); });
+}
+
+function actualizarReloj() {
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2,'0');
+  var m = String(now.getMinutes()).padStart(2,'0');
+  var el = document.getElementById('fecha-reloj');
+  if (el) el.textContent = DIAS_LABEL[now.getDay()] + ', ' + now.getDate() + ' de ' + MESES[now.getMonth()] + ' · ' + h + ':' + m;
+
+  var diaKey  = DIAS_KEY[now.getDay()];
+  var bloques = rutina[diaKey] || [];
+  var min     = now.getHours()*60 + now.getMinutes();
+  var actual = null, siguiente = null;
+  for (var i = 0; i < bloques.length; i++) {
+    var hI = parseInt(bloques[i].inicio.split(':')[0])*60 + parseInt(bloques[i].inicio.split(':')[1]);
+    var hF = parseInt(bloques[i].fin.split(':')[0])*60   + parseInt(bloques[i].fin.split(':')[1]);
+    if (min >= hI && min < hF) { actual = Object.assign({}, bloques[i], {minI:hI, minF:hF}); siguiente = bloques[i+1] || null; break; }
+    if (min < hI && !siguiente) siguiente = bloques[i];
+  }
+  var _set = function(id, v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+  _set('bloque-actual-nombre',   actual    ? actual.bloque    : 'Sin bloque activo');
+  _set('bloque-actual-hora',     actual    ? actual.inicio + ' — ' + actual.fin : '');
+  _set('bloque-siguiente-nombre',siguiente ? siguiente.bloque : 'Sin más bloques');
+  _set('bloque-siguiente-hora',  siguiente ? 'A las ' + siguiente.inicio : '');
+
+  var arc = document.getElementById('progreso-arc');
+  var pct = document.getElementById('progreso-pct');
+  if (actual && arc) {
+    var p = Math.round(((min - actual.minI) / (actual.minF - actual.minI)) * 100);
+    arc.setAttribute('stroke-dashoffset', Math.round(125.7 * (1 - p/100)));
+    if (pct) pct.textContent = p + '%';
+  } else if (arc) {
+    arc.setAttribute('stroke-dashoffset', '125.7');
+    if (pct) pct.textContent = '—';
+  }
+}
+
+function renderTimeline(bloques) {
+  var tl = document.getElementById('rutina-timeline');
+  if (!tl) return;
+  if (!bloques.length) {
+    tl.innerHTML = '<span style="font-size:.72rem;color:var(--text-muted)">Sin bloques. <a href="/rutina">Crear →</a></span>';
+    return;
+  }
+  var now = new Date(), min = now.getHours()*60 + now.getMinutes();
+  tl.innerHTML = bloques.map(function(b) {
+    var hI = parseInt(b.inicio.split(':')[0])*60 + parseInt(b.inicio.split(':')[1]);
+    var hF = parseInt(b.fin.split(':')[0])*60   + parseInt(b.fin.split(':')[1]);
+    var isNow = min >= hI && min < hF, isPast = min >= hF;
+    return '<div class="tl-block' + (isNow?' now':isPast?' past':'') + '">' +
+      '<div style="font-size:.54rem;font-family:monospace;opacity:.7">' + b.inicio + '–' + b.fin + '</div>' +
+      '<div style="font-size:.68rem">' + (isNow ? '▶ ' : '') + b.bloque + '</div></div>';
+  }).join('');
+}
+
+// ── Secciones colapsables ──
+function toggleQCI() {
+  var p = document.getElementById('qci-panel');
+  var a = document.getElementById('qci-arrow');
+  var v = p.style.display !== 'none';
+  p.style.display = v ? 'none' : 'block';
+  a.textContent = v ? '▸' : '▾';
+}
+function toggleSec(panelId, arrowId) {
+  var p = document.getElementById(panelId);
+  var a = document.getElementById(arrowId);
+  var v = p.style.display !== 'none';
+  p.style.display = v ? 'none' : 'block';
+  a.textContent = v ? '▸' : '▾';
+}
+
+// ── Quick check-in ──
+function guardarQuickCheckin() {
+  var body = {
+    energy:         document.getElementById('qci-energy').value,
+    mood:           document.getElementById('qci-mood').value,
+    clarity:        document.getElementById('qci-clarity').value,
+    anxiety:        document.getElementById('qci-anxiety').value,
+    sleep_hours:    document.getElementById('qci-sleep').value,
+    did_exercise:   document.getElementById('qci-exercise').checked ? 1 : 0,
+    did_study:      document.getElementById('qci-study').checked ? 1 : 0,
+    completed_main: document.getElementById('qci-main').checked ? 1 : 0,
+  };
+  apiFetch('/checkin/quick', { method:'POST', body: body })
+    .then(function() {
+      showToast('✓ Check-in guardado', 'success');
+      setTimeout(function() { location.reload(); }, 900);
+    });
+}
+
+// ── Toggle hábito ──
+function dashToggle(id) {
+  var item = document.getElementById('dash-h-' + id);
+  var dot  = document.getElementById('dash-dot-' + id);
+  apiFetch('/habits/' + id + '/toggle', {
+    method: 'POST',
+    body: { date: TODAY_DASH }
+  }).then(function(d) {
+    if (item) item.classList.toggle('done', d.completado);
+    if (dot)  dot.textContent = d.completado ? '✓' : '';
+    if (d.completado) showToast('Hábito completado ✓', 'success', 1600);
+  });
+}
+
+// ── Sparkline ──
+<% if (_wc.length >= 2) { %>
+(function(){
+  var chartData = <%- locals.chartData || '{}' %>;
+  if (!chartData.labels) return;
+  var ctx = document.getElementById('spark-chart');
+  if (!ctx) return;
+  var isDark = !document.body.classList.contains('light');
+  var gridColor = isDark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.06)';
+  var tickColor = isDark ? 'rgba(255,255,255,.35)' : 'rgba(0,0,0,.35)';
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: [
+        { label:'Energía',  data:chartData.energy,  borderColor:'#f59e0b', borderWidth:2, pointRadius:2, tension:.4, fill:false },
+        { label:'Ánimo',    data:chartData.mood,    borderColor:'#a78bfa', borderWidth:2, pointRadius:2, tension:.4, fill:false },
+        { label:'Ansiedad', data:chartData.anxiety, borderColor:'#fb7185', borderWidth:1.5, pointRadius:2, tension:.4, fill:false, borderDash:[3,3] },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:true, labels:{ color: tickColor, font:{size:10}, boxWidth:12 } } },
+      scales:{
+        x:{ ticks:{color:tickColor, font:{size:9}}, grid:{display:false} },
+        y:{ min:0, max:10, ticks:{color:tickColor, font:{size:9}, stepSize:5}, grid:{color:gridColor} }
+      }
+    }
+  });
+})();
+<% } %>
+
+// ── Coach IA mini-chat ──
+function renderCoachTags(text) {
+  text = text
+    .replace(/\[\[M:(.*?):(.*?):(.*?)\]\]/g, function(_,l,v,c){
+      var colors={green:'#22c55e',red:'#ef4444',amber:'#f59e0b',accent:'var(--accent)',muted:'var(--text-muted)',indigo:'#6366f1'};
+      var col = colors[c] || colors.accent;
+      return '<span class="cm-pill" style="background:'+col+'22;color:'+col+'">'+l+' <strong>'+v+'</strong></span>';
+    })
+    .replace(/\[\[BAR:(.*?):(.*?):(.*?)\]\]/g, function(_,l,p,c){
+      var colors={green:'#22c55e',red:'#ef4444',amber:'#f59e0b',accent:'var(--accent)',indigo:'#6366f1'};
+      var col = colors[c] || colors.accent;
+      return '<div class="cm-bar-wrap"><div class="cm-bar-label"><span>'+l+'</span><span style="color:'+col+'">'+p+'%</span></div><div class="cm-bar-track"><div class="cm-bar-fill" style="width:'+Math.min(100,p)+'%;background:'+col+'"></div></div></div>';
+    })
+    .replace(/\[\[RX:(.*?)\]\]/g,    '<div class="cm-rx">📋 $1</div>')
+    .replace(/\[\[ALERT:(.*?)\]\]/g, '<div class="cm-alert">⚠️ $1</div>')
+    .replace(/\[\[OK:(.*?)\]\]/g,    '<div class="cm-ok">✅ $1</div>');
+  return text.replace(/\n/g, '<br>');
+}
+
+function dashCoachSend() {
+  var inp = document.getElementById('dash-chat-inp');
+  var msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  inp.placeholder = 'Pensando…';
+  inp.disabled = true;
+  progressStart();
+  fetch('/coach/chat', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ mensaje: msg })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d) {
+    progressDone();
+    inp.disabled = false;
+    inp.placeholder = 'Pregunta al coach…';
+    var resp = document.getElementById('dash-coach-resp');
+    var txt  = document.getElementById('dash-coach-resp-txt');
+    if (txt) txt.innerHTML = renderCoachTags(d.respuesta || 'Sin respuesta.');
+    if (resp) { resp.style.display = 'block'; resp.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+  })
+  .catch(function() {
+    progressDone();
+    inp.disabled = false;
+    inp.placeholder = 'Pregunta al coach…';
+    showToast('Error al conectar con el coach', 'error');
+  });
+}
+
+cargarRutina();
+setInterval(actualizarReloj, 60000);
+</script>
+
+<%- include('partials/footer') %>

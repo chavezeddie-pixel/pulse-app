@@ -1,0 +1,273 @@
+<%- include('partials/header') %>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Calendario</h1>
+    <p class="page-subtitle">Vista mensual — rutina, hábitos, chequeos y objetivos</p>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    <button onclick="cambiarMes(-1)" class="btn btn-ghost">← Anterior</button>
+    <span id="mesActual" style="font-family:var(--font-mono);font-size:.9rem;min-width:140px;text-align:center"></span>
+    <button onclick="cambiarMes(1)" class="btn btn-ghost">Siguiente →</button>
+  </div>
+</div>
+
+<div id="calendario" class="cal-grid"></div>
+
+<div id="modal-dia" class="modal-overlay" onclick="closeOnOverlay(event,'modal-dia')">
+  <div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3 id="modal-dia-titulo">Día</h3>
+      <button onclick="toggleModal('modal-dia')" class="modal-close">✕</button>
+    </div>
+    <div id="modal-dia-contenido"></div>
+  </div>
+</div>
+
+<style>
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: .4rem;
+}
+.cal-header-day {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  padding: .4rem 0;
+}
+.cal-day {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .5rem;
+  min-height: 90px;
+  cursor: pointer;
+  transition: border-color .15s;
+  position: relative;
+}
+.cal-day:hover { border-color: var(--accent); }
+.cal-day.hoy { border-color: var(--accent); background: var(--accent-dim); }
+.cal-day.otro-mes { opacity: .3; cursor: default; }
+.cal-day.tiene-datos { border-color: var(--border-2); }
+.cal-num {
+  font-family: var(--font-mono);
+  font-size: .8rem;
+  font-weight: 700;
+  margin-bottom: .3rem;
+}
+.cal-day.hoy .cal-num { color: var(--accent); }
+.cal-score {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.cal-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-top: .3rem;
+}
+.cal-badge {
+  font-size: .6rem;
+  padding: .1rem .3rem;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+.cal-badge.green { background: var(--green-dim); color: var(--green); }
+.cal-badge.amber { background: var(--accent-dim); color: var(--accent); }
+.cal-habitos-bar {
+  height: 3px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  margin-top: .4rem;
+  overflow: hidden;
+}
+.cal-habitos-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 99px;
+}
+.modal-section { margin-bottom: 1.25rem; }
+.modal-section-title {
+  font-family: var(--font-mono);
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--text-muted);
+  margin-bottom: .6rem;
+  padding-bottom: .4rem;
+  border-bottom: 1px solid var(--border);
+}
+.rutina-mini { display: flex; flex-direction: column; gap: .3rem; }
+.rutina-mini-item {
+  display: flex; gap: .75rem; font-size: .8125rem;
+  padding: .3rem .5rem; border-radius: 5px;
+}
+.rutina-mini-item.activo-modal { background: var(--accent-dim); color: var(--accent); }
+.rutina-hora { font-family: var(--font-mono); font-size: .75rem; color: var(--text-muted); min-width: 100px; }
+</style>
+
+<script>
+const DIAS_HEADER = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_KEY = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+
+let mesActual = new Date().getMonth();
+let anioActual = new Date().getFullYear();
+let checkins = [];
+let habitCompletions = {};
+let rutina = {};
+let objetivos = {};
+
+async function cargarDatos() {
+  // Cargar rutina
+  const rRes = await fetch('/rutina.json');
+  rutina = await rRes.json();
+
+  // Cargar datos del servidor
+  const dRes = await fetch('/api/calendario?mes=' + (mesActual+1) + '&anio=' + anioActual);
+  const data = await dRes.json();
+  checkins = data.checkins || [];
+  habitCompletions = data.habitCompletions || {};
+  objetivos = data.objetivos || {};
+
+  renderCalendario();
+}
+
+function renderCalendario() {
+  const cal = document.getElementById('calendario');
+  cal.innerHTML = '';
+  document.getElementById('mesActual').textContent = MESES[mesActual] + ' ' + anioActual;
+
+  // Headers
+  DIAS_HEADER.forEach(d => {
+    const h = document.createElement('div');
+    h.className = 'cal-header-day';
+    h.textContent = d;
+    cal.appendChild(h);
+  });
+
+  const primerDia = new Date(anioActual, mesActual, 1);
+  let diaSemana = primerDia.getDay();
+  diaSemana = diaSemana === 0 ? 6 : diaSemana - 1; // lunes=0
+
+  const diasEnMes = new Date(anioActual, mesActual + 1, 0).getDate();
+  const hoy = new Date();
+
+  // Días vacíos al inicio
+  for (let i = 0; i < diaSemana; i++) {
+    const empty = document.createElement('div');
+    empty.className = 'cal-day otro-mes';
+    cal.appendChild(empty);
+  }
+
+  for (let dia = 1; dia <= diasEnMes; dia++) {
+    const fecha = `${anioActual}-${String(mesActual+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const checkin = checkins.find(c => c.date === fecha);
+    const completados = habitCompletions[fecha] || [];
+    const totalHabitos = habitCompletions._total || 0;
+    const esHoy = hoy.getDate()===dia && hoy.getMonth()===mesActual && hoy.getFullYear()===anioActual;
+
+    const div = document.createElement('div');
+    div.className = 'cal-day' + (esHoy ? ' hoy' : '') + (checkin ? ' tiene-datos' : '');
+
+    let html = `<div class="cal-num">${dia}</div>`;
+
+    if (checkin) {
+      const score = Math.round((checkin.energy + checkin.mood + checkin.clarity + (10 - checkin.anxiety)) / 4 * 10);
+      html += `<div class="cal-score">${score}</div>`;
+      html += `<div class="cal-badges">`;
+      if (checkin.did_exercise) html += `<span class="cal-badge green">EJ</span>`;
+      if (checkin.did_study) html += `<span class="cal-badge amber">EST</span>`;
+      if (checkin.completed_main) html += `<span class="cal-badge green">✓</span>`;
+      html += `</div>`;
+    }
+
+    if (completados.length > 0 && totalHabitos > 0) {
+      const pct = Math.round(completados.length / totalHabitos * 100);
+      html += `<div class="cal-habitos-bar"><div class="cal-habitos-fill" style="width:${pct}%"></div></div>`;
+    }
+
+    div.innerHTML = html;
+    div.onclick = () => abrirDia(dia, fecha, checkin, completados, totalHabitos);
+    cal.appendChild(div);
+  }
+}
+
+function abrirDia(dia, fecha, checkin, completados, totalHabitos) {
+  const fechaObj = new Date(fecha + 'T12:00:00');
+  const diaSemanaIdx = fechaObj.getDay();
+  const diaKey = DIAS_KEY[diaSemanaIdx === 0 ? 6 : diaSemanaIdx - 1];
+  const bloques = rutina[diaKey] || [];
+
+  document.getElementById('modal-dia-titulo').textContent =
+    diaKey.charAt(0).toUpperCase() + diaKey.slice(1) + ' ' + dia + ' — ' + fecha;
+
+  let html = '';
+
+  // Chequeo
+  html += `<div class="modal-section">
+    <div class="modal-section-title">Chequeo del Día</div>`;
+  if (checkin) {
+    const score = Math.round((checkin.energy + checkin.mood + checkin.clarity + (10 - checkin.anxiety)) / 4 * 10);
+    html += `
+    <div class="grid-4" style="gap:.5rem">
+      <div class="metric-card"><div class="metric-label">Score</div><div class="metric-value" style="font-size:1.2rem">${score}</div></div>
+      <div class="metric-card"><div class="metric-label">Energía</div><div class="metric-value" style="font-size:1.2rem">${checkin.energy}</div></div>
+      <div class="metric-card"><div class="metric-label">Ánimo</div><div class="metric-value" style="font-size:1.2rem">${checkin.mood}</div></div>
+      <div class="metric-card"><div class="metric-label">Ansiedad</div><div class="metric-value" style="font-size:1.2rem">${checkin.anxiety}</div></div>
+    </div>
+    <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+      <span class="badge ${checkin.did_exercise ? 'badge-green' : 'badge-muted'}">${checkin.did_exercise ? '✓' : '✗'} Ejercicio</span>
+      <span class="badge ${checkin.did_study ? 'badge-green' : 'badge-muted'}">${checkin.did_study ? '✓' : '✗'} Estudio</span>
+      <span class="badge ${checkin.completed_main ? 'badge-green' : 'badge-muted'}">${checkin.completed_main ? '✓' : '✗'} Bloque principal</span>
+      <span class="badge badge-muted">😴 ${checkin.sleep_hours}h sueño</span>
+    </div>
+    ${checkin.did_well ? `<p style="font-size:.8rem;color:var(--text-soft);margin-top:.5rem">✓ ${checkin.did_well}</p>` : ''}`;
+  } else {
+    html += `<p class="empty-state">Sin chequeo registrado. <a href="/checkin?date=${fecha}">Registrar →</a></p>`;
+  }
+  html += `</div>`;
+
+  // Hábitos
+  html += `<div class="modal-section">
+    <div class="modal-section-title">Hábitos (${completados.length}/${totalHabitos})</div>`;
+  if (completados.length > 0) {
+    html += `<div class="cal-habitos-bar" style="height:6px;margin-bottom:.5rem"><div class="cal-habitos-fill" style="width:${Math.round(completados.length/totalHabitos*100)}%"></div></div>`;
+    html += `<p style="font-size:.8rem;color:var(--text-muted)">${Math.round(completados.length/totalHabitos*100)}% completado</p>`;
+  } else {
+    html += `<p class="empty-state">Sin hábitos marcados este día.</p>`;
+  }
+  html += `</div>`;
+
+  // Rutina
+  html += `<div class="modal-section">
+    <div class="modal-section-title">Rutina del Día (${diaKey})</div>
+    <div class="rutina-mini">`;
+  bloques.forEach(b => {
+    html += `<div class="rutina-mini-item">
+      <span class="rutina-hora">${b.inicio} — ${b.fin}</span>
+      <span>${b.bloque}</span>
+    </div>`;
+  });
+  html += `</div></div>`;
+
+  document.getElementById('modal-dia-contenido').innerHTML = html;
+  toggleModal('modal-dia');
+}
+
+function cambiarMes(dir) {
+  mesActual += dir;
+  if (mesActual > 11) { mesActual = 0; anioActual++; }
+  if (mesActual < 0)  { mesActual = 11; anioActual--; }
+  cargarDatos();
+}
+
+cargarDatos();
+</script>
+<%- include('partials/footer') %>

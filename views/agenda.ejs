@@ -1,0 +1,925 @@
+<%- include('partials/header') %>
+
+<style>
+/* ══════════════════════════════════════════════
+   AGENDA
+══════════════════════════════════════════════ */
+
+/* ── Stat pills ── */
+.ag-pills { display:flex; gap:.55rem; flex-wrap:wrap; margin-bottom:1.4rem; }
+.ag-pill {
+  display:flex; align-items:center; gap:.4rem;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:99px; padding:.32rem .75rem;
+  font-size:.78rem; font-weight:500; color:var(--text-soft);
+  white-space:nowrap;
+}
+.ag-pill strong { font-family:var(--font-mono); color:var(--text); }
+.ag-pill .pip { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+/* ── Week strip ── */
+.week-strip {
+  display:grid; grid-template-columns:repeat(7,1fr);
+  gap:.4rem; margin-bottom:1.3rem;
+}
+.week-day {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.6rem .25rem .5rem;
+  text-align:center; cursor:pointer;
+  transition:border-color var(--transition), background var(--transition);
+  user-select:none; position:relative; overflow:hidden;
+}
+.week-day:hover { border-color:var(--border-2); background:var(--surface-2); }
+.week-day.hoy:not(.selected) { border-color:var(--accent); }
+.week-day.selected {
+  background:var(--accent-dim); border-color:var(--accent);
+}
+.week-day.selected .wd-name,
+.week-day.selected .wd-num { color:var(--accent); }
+.wd-name { font-size:.56rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:.2rem; }
+.wd-num  { font-size:1.05rem; font-weight:800; font-family:var(--font-mono); line-height:1; color:var(--text); margin-bottom:.35rem; }
+.wd-prog {
+  height:3px; background:var(--surface-3); border-radius:99px;
+  margin:0 auto; width:calc(100% - .5rem); overflow:hidden;
+}
+.wd-prog-fill { height:100%; border-radius:99px; transition:width .3s; }
+
+/* ── Main layout ── */
+.agenda-layout {
+  display:grid; grid-template-columns:1fr 290px;
+  gap:1.1rem; align-items:start;
+}
+@media(max-width:920px) { .agenda-layout { grid-template-columns:1fr; } }
+
+/* ── Task list ── */
+.task-list { display:flex; flex-direction:column; gap:.3rem; min-height:60px; }
+
+.t-item {
+  display:flex; align-items:center; gap:.5rem;
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:.5rem .65rem;
+  transition:opacity .2s ease, border-color .15s, background .15s;
+  position:relative;
+}
+.t-item:hover { border-color:var(--border-2); }
+.t-item.done { opacity:.38; }
+.t-item.done .t-name { text-decoration:line-through; }
+
+/* Priority side bar */
+.p-bar {
+  width:3px; border-radius:99px; align-self:stretch;
+  flex-shrink:0; min-height:18px;
+}
+.p-alta  { background:var(--red); }
+.p-media { background:var(--accent); }
+.p-baja  { background:var(--text-muted); }
+
+/* Checkbox */
+.t-check {
+  width:19px; height:19px; border-radius:50%;
+  border:2px solid var(--border-2); flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.58rem; font-weight:800; color:transparent;
+  transition:all .15s;
+}
+.t-check.done { background:var(--green); border-color:var(--green); color:#fff; }
+.t-check:hover:not(.done) { border-color:var(--accent); }
+
+.t-body { flex:1; min-width:0; }
+.t-name { font-size:.84rem; line-height:1.35; word-break:break-word; }
+.t-meta { display:flex; align-items:center; gap:.35rem; margin-top:.2rem; flex-wrap:wrap; }
+.t-hora { font-family:var(--font-mono); font-size:.6rem; color:var(--accent); }
+.t-area {
+  font-size:.59rem; background:var(--surface-3); border:1px solid var(--border);
+  padding:.06rem .3rem; border-radius:99px; color:var(--text-muted);
+}
+.t-del {
+  background:none; border:none; color:var(--text-muted); cursor:pointer;
+  padding:.2rem .3rem; border-radius:5px; font-size:.72rem; flex-shrink:0;
+  transition:all .12s;
+}
+.t-del:hover { color:var(--red); background:var(--red-dim); }
+
+/* ── Add task form ── */
+.add-task-wrap {
+  margin-top:.75rem; padding-top:.75rem;
+  border-top:1px solid var(--border);
+}
+.add-row { display:flex; gap:.4rem; align-items:center; }
+.add-row .input { flex:1; font-size:.84rem; }
+.add-opts {
+  display:grid; grid-template-columns:110px 1fr 1fr;
+  gap:.4rem; margin-top:.4rem;
+}
+.add-opts .input { font-size:.76rem; }
+.add-row-extra { display:flex; justify-content:flex-end; margin-top:.3rem; }
+
+/* ── Progress strip ── */
+.prog-strip { height:3px; background:var(--surface-3); border-radius:99px; overflow:hidden; flex:1; }
+.prog-fill  { height:100%; border-radius:99px; transition:width .35s; }
+
+/* ── Empty state ── */
+.task-empty { text-align:center; padding:2rem 1rem; color:var(--text-muted); }
+.task-empty .ei { font-size:2rem; margin-bottom:.5rem; line-height:1; }
+.task-empty p   { font-size:.82rem; }
+
+/* ── Próximas ── */
+.prox-group { margin-bottom:.9rem; }
+.prox-group:last-child { margin-bottom:0; }
+.prox-fecha-row { display:flex; align-items:center; gap:.45rem; margin-bottom:.4rem; }
+.prox-fecha { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); }
+.dias-badge {
+  font-size:.6rem; font-weight:700; padding:.1rem .38rem;
+  border-radius:99px; white-space:nowrap;
+}
+.dias-hoy     { background:var(--green-dim); color:var(--green); }
+.dias-manana  { background:var(--indigo-dim); color:var(--indigo); }
+.dias-pronto  { background:var(--accent-dim); color:var(--accent); }
+.dias-vencido { background:var(--red-dim); color:var(--red); }
+
+/* ── Sidebar ── */
+.mini-cal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.9rem;
+  margin-bottom:.75rem;
+}
+.mini-cal-hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:.55rem;
+}
+.mini-cal-nav {
+  background:none; border:none; color:var(--text-muted);
+  cursor:pointer; font-size:.95rem; padding:.1rem .35rem;
+  border-radius:5px; transition:all .12s;
+}
+.mini-cal-nav:hover { color:var(--accent); background:var(--surface-2); }
+.mini-cal-ttl { font-family:var(--font-mono); font-size:.72rem; font-weight:700; }
+.mini-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+.mini-cal-dh {
+  text-align:center; font-size:.52rem; color:var(--text-muted);
+  font-family:var(--font-mono); padding:.15rem 0;
+}
+.mini-cal-d {
+  text-align:center; font-size:.63rem; font-family:var(--font-mono);
+  padding:.2rem .05rem; border-radius:5px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:1px;
+  transition:background .1s;
+}
+.mini-cal-d:hover { background:var(--surface-2); }
+.mini-cal-d.hoy { background:var(--accent-dim); color:var(--accent); font-weight:700; }
+.mini-cal-d.selected-day {
+  background:var(--accent); color:#000; font-weight:700; border-radius:50%;
+}
+.mini-cal-d.otro-mes { opacity:.12; pointer-events:none; }
+.mini-cal-dot { width:3px; height:3px; border-radius:50%; }
+
+/* Side card */
+.side-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.9rem;
+  margin-bottom:.75rem;
+}
+.side-card:last-child { margin-bottom:0; }
+.side-card-hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:.7rem;
+}
+.side-card-ttl { font-family:var(--font-mono); font-size:.72rem; font-weight:700; }
+
+/* Stat rows */
+.stat-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.3rem 0; border-bottom:1px solid var(--border);
+  font-size:.78rem; color:var(--text-soft);
+}
+.stat-row:last-child { border-bottom:none; }
+.stat-row .sv { font-family:var(--font-mono); font-weight:700; color:var(--text); }
+
+/* Objective rows */
+.obj-row {
+  display:flex; align-items:center; gap:.4rem;
+  padding:.38rem .4rem; background:var(--surface-2);
+  border-radius:var(--radius); border:1px solid var(--border);
+  margin-bottom:.25rem; transition:opacity .2s;
+}
+.obj-row.done { opacity:.35; }
+.obj-check {
+  width:16px; height:16px; border-radius:50%;
+  border:2px solid var(--border-2); flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.5rem; font-weight:800; color:transparent;
+  transition:all .15s;
+}
+.obj-check.done { background:var(--accent); border-color:var(--accent); color:#000; }
+.obj-name { flex:1; font-size:.78rem; line-height:1.3; }
+.obj-del {
+  background:none; border:none; color:var(--text-muted);
+  cursor:pointer; font-size:.68rem; padding:.12rem .2rem;
+  border-radius:4px; flex-shrink:0; transition:all .12s;
+}
+.obj-del:hover { color:var(--red); background:var(--red-dim); }
+</style>
+
+<%
+var _today    = locals.today    || '';
+var _diaVista = locals.diaVista || _today;
+var _dias     = locals.diasSemana || [];
+var _tareas   = locals.tareasDiaVista || [];
+var _proximas = locals.proximasTareas || [];
+var _weekly   = locals.weeklyObjs  || [];
+var _monthly  = locals.monthlyObjs || [];
+
+var _semPend = _weekly.filter(function(o){ return o.status !== 'cancelado'; });
+var _semDone = _semPend.filter(function(o){ return o.status === 'completado'; }).length;
+var _mesDone = _monthly.filter(function(o){ return o.status === 'completado'; }).length;
+var _tDone   = _tareas.filter(function(t){ return t.completado; }).length;
+var _tTotal  = _tareas.length;
+var _tPct    = _tTotal > 0 ? Math.round(_tDone / _tTotal * 100) : 0;
+
+var _diasMap = {0:'Domingo',1:'Lunes',2:'Martes',3:'Miércoles',4:'Jueves',5:'Viernes',6:'Sábado'};
+var _dvDate  = new Date(_diaVista + 'T00:00:00');
+var _dvLabel = _diaVista === _today ? 'Hoy' : _diasMap[_dvDate.getDay()] + ' ' + _diaVista.slice(5).replace('-','/');
+%>
+
+<!-- ── PAGE HEADER ── -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Agenda</h1>
+    <p class="page-subtitle"><%= _today %></p>
+  </div>
+  <div style="display:flex;gap:.5rem">
+    <button class="btn btn-ghost btn-sm" onclick="toggleModal('modal-nuevo-semanal')">+ Semana</button>
+    <button class="btn btn-ghost btn-sm" onclick="toggleModal('modal-nuevo-mensual')">+ Mes</button>
+    <button class="btn btn-primary btn-sm" onclick="focusAdd()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="13" height="13"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Tarea
+    </button>
+  </div>
+</div>
+
+<!-- ── STAT PILLS ── -->
+<div class="ag-pills">
+  <div class="ag-pill">
+    <div class="pip" style="background:var(--green)"></div>
+    Hoy <strong><%= _tDone %>/<%= _tTotal %></strong>
+    <% if(_tTotal > 0) { %><span style="color:var(--text-muted);font-size:.72rem">(<%= _tPct %>%)</span><% } %>
+  </div>
+  <div class="ag-pill">
+    <div class="pip" style="background:var(--accent)"></div>
+    Semana <strong><%= _semDone %>/<%= _semPend.length %></strong>
+  </div>
+  <div class="ag-pill">
+    <div class="pip" style="background:var(--indigo)"></div>
+    Mes <strong><%= _mesDone %>/<%= _monthly.length %></strong>
+  </div>
+  <% if(_proximas.filter(function(t){return !t.completado}).length > 0) { %>
+  <div class="ag-pill">
+    <div class="pip" style="background:var(--text-muted)"></div>
+    Próximas <strong><%= _proximas.filter(function(t){return !t.completado}).length %></strong>
+  </div>
+  <% } %>
+</div>
+
+<!-- ── WEEK STRIP ── -->
+<div class="week-strip">
+  <% _dias.forEach(function(d) {
+    var isHoy = d.fecha === _today;
+    var isSel = d.fecha === _diaVista;
+    var cls   = (isHoy ? 'hoy ' : '') + (isSel ? 'selected' : '');
+    var pct   = d.total > 0 ? Math.round(d.done / d.total * 100) : 0;
+    var progColor = pct >= 80 ? '#22c55e' : pct >= 40 ? 'var(--accent)' : 'var(--text-muted)';
+  %>
+  <div class="week-day <%= cls %>" data-fecha="<%= d.fecha %>" onclick="cambiarDia('<%= d.fecha %>')">
+    <div class="wd-name"><%= d.dia %></div>
+    <div class="wd-num"><%= d.num %></div>
+    <div class="wd-prog">
+      <div class="wd-prog-fill" style="width:<%= pct %>%;background:<%= progColor %>"></div>
+    </div>
+  </div>
+  <% }); %>
+</div>
+
+<!-- ── MAIN LAYOUT ── -->
+<div class="agenda-layout">
+
+  <!-- LEFT -->
+  <div>
+
+    <!-- Día seleccionado -->
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header" style="margin-bottom:.7rem">
+        <h2 class="card-title" id="dia-titulo"><%= _dvLabel %></h2>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <span style="font-family:var(--font-mono);font-size:.7rem;color:var(--text-muted)" id="prog-label"><%= _tDone %>/<%= _tTotal %></span>
+          <% if(_tTotal > 0) { %>
+          <div class="prog-strip" style="width:56px">
+            <div class="prog-fill" id="prog-bar"
+              style="width:<%= _tPct %>%;background:<%= _tPct>=80?'var(--green)':_tPct>=40?'var(--accent)':'var(--red)' %>"></div>
+          </div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="task-list" id="lista-dia">
+        <% if (_tTotal === 0) { %>
+        <div class="task-empty">
+          <div class="ei">📋</div>
+          <p>Sin tareas para este día.<br>Añade una abajo.</p>
+        </div>
+        <% } else { %>
+        <% _tareas.forEach(function(t) {
+          var prio = t.priority || 'media';
+        %>
+        <div class="t-item <%= t.completado ? 'done' : '' %>" id="ti-<%= t.id %>">
+          <div class="p-bar p-<%= prio %>"></div>
+          <div class="t-check <%= t.completado ? 'done' : '' %>" onclick="toggleTarea(<%= t.id %>)"><%= t.completado ? '✓' : '' %></div>
+          <div class="t-body">
+            <div class="t-name"><%= t.nombre %></div>
+            <% if (t.hora || t.area) { %>
+            <div class="t-meta">
+              <% if (t.hora) { %><span class="t-hora">⏰ <%= t.hora %></span><% } %>
+              <% if (t.area) { %><span class="t-area"><%= t.area %></span><% } %>
+            </div>
+            <% } %>
+          </div>
+          <button class="t-del" onclick="eliminarTarea(<%= t.id %>)" title="Eliminar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <% }); %>
+        <% } %>
+      </div>
+
+      <!-- Add task -->
+      <div class="add-task-wrap">
+        <div class="add-row">
+          <input type="text" id="inp-tarea" class="input" placeholder="Nueva tarea para este día…" autocomplete="off" />
+          <button class="btn btn-primary btn-sm" onclick="addTarea()">Añadir</button>
+        </div>
+        <div class="add-opts" id="add-opts" style="display:none">
+          <input type="time" id="inp-hora" class="input" />
+          <select id="inp-prio" class="input">
+            <option value="alta">🔴 Alta</option>
+            <option value="media" selected>🟡 Media</option>
+            <option value="baja">⚫ Baja</option>
+          </select>
+          <select id="inp-area" class="input">
+            <option value="">Sin área</option>
+            <option value="trabajo">Trabajo</option>
+            <option value="estudio">Estudio</option>
+            <option value="salud">Salud</option>
+            <option value="personal">Personal</option>
+            <option value="familia">Familia</option>
+            <option value="finanzas">Finanzas</option>
+          </select>
+        </div>
+        <div class="add-row-extra">
+          <button class="btn btn-ghost btn-sm" id="btn-opts" onclick="toggleAddOpts()" style="font-size:.72rem">
+            ⚙ Opciones
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Próximas tareas -->
+    <% if (_proximas.length > 0) {
+      var _porFecha = {};
+      _proximas.forEach(function(t) {
+        if (!_porFecha[t.fecha]) _porFecha[t.fecha] = [];
+        _porFecha[t.fecha].push(t);
+      });
+      var _hoyD = new Date(_today + 'T00:00:00');
+    %>
+    <div class="card">
+      <div class="card-header" style="margin-bottom:.7rem">
+        <h2 class="card-title">📌 Próximas</h2>
+        <span style="font-family:var(--font-mono);font-size:.7rem;color:var(--text-muted)">
+          <%= _proximas.filter(function(t){return !t.completado}).length %> pendientes
+        </span>
+      </div>
+      <% Object.keys(_porFecha).forEach(function(fecha) {
+        var ts   = _porFecha[fecha];
+        var df   = new Date(fecha + 'T00:00:00');
+        var diff = Math.round((df - _hoyD) / 86400000);
+        var diffLbl = diff === 0 ? 'Hoy' : diff === 1 ? 'Mañana' : diff < 0 ? 'Vencido' : 'En ' + diff + 'd';
+        var diffCls = diff === 0 ? 'dias-hoy' : diff === 1 ? 'dias-manana' : diff < 0 ? 'dias-vencido' : 'dias-pronto';
+      %>
+      <div class="prox-group">
+        <div class="prox-fecha-row">
+          <span class="prox-fecha"><%= fecha %></span>
+          <span class="dias-badge <%= diffCls %>"><%= diffLbl %></span>
+        </div>
+        <div class="task-list">
+        <% ts.forEach(function(t) { %>
+        <div class="t-item <%= t.completado ? 'done' : '' %>" id="ti-<%= t.id %>">
+          <div class="t-check <%= t.completado ? 'done' : '' %>" onclick="toggleTarea(<%= t.id %>)"><%= t.completado ? '✓' : '' %></div>
+          <div class="t-body">
+            <div class="t-name"><%= t.nombre %></div>
+            <% if (t.hora) { %>
+            <div class="t-meta"><span class="t-hora">⏰ <%= t.hora %></span></div>
+            <% } %>
+          </div>
+          <button class="t-del" onclick="eliminarTarea(<%= t.id %>)" title="Eliminar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <% }); %>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+  </div>
+
+  <!-- RIGHT SIDEBAR -->
+  <div>
+
+    <!-- Mini Calendario -->
+    <div class="mini-cal">
+      <div class="mini-cal-hdr">
+        <button class="mini-cal-nav" onclick="calNav(-1)">‹</button>
+        <span class="mini-cal-ttl" id="mini-cal-title">—</span>
+        <button class="mini-cal-nav" onclick="calNav(1)">›</button>
+      </div>
+      <div class="mini-cal-grid" id="mini-cal-grid"></div>
+    </div>
+
+    <!-- Resumen -->
+    <div class="side-card">
+      <div class="side-card-hdr">
+        <span class="side-card-ttl">RESUMEN</span>
+      </div>
+      <div class="stat-row">
+        <span>Completadas hoy</span>
+        <span class="sv" style="color:var(--green)"><%= _tDone %>/<%= _tTotal %></span>
+      </div>
+      <div class="stat-row">
+        <span>Objetivos semana</span>
+        <span class="sv" style="color:var(--accent)"><%= _semDone %>/<%= _semPend.length %></span>
+      </div>
+      <div class="stat-row">
+        <span>Metas del mes</span>
+        <span class="sv" style="color:var(--indigo)"><%= _mesDone %>/<%= _monthly.length %></span>
+      </div>
+      <div class="stat-row">
+        <span>Próximas pendientes</span>
+        <span class="sv"><%= _proximas.filter(function(t){return !t.completado}).length %></span>
+      </div>
+    </div>
+
+    <!-- Objetivos semana -->
+    <div class="side-card">
+      <div class="side-card-hdr">
+        <span class="side-card-ttl">ESTA SEMANA</span>
+        <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:.22rem .5rem" onclick="toggleModal('modal-nuevo-semanal')">+</button>
+      </div>
+      <% if (_semPend.length > 0) { %>
+      <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.6rem">
+        <div class="prog-strip">
+          <div class="prog-fill" style="width:<%= _semPend.length > 0 ? Math.round(_semDone/_semPend.length*100) : 0 %>%;background:var(--accent)"></div>
+        </div>
+        <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text-muted);white-space:nowrap">
+          <%= _semPend.length > 0 ? Math.round(_semDone/_semPend.length*100) : 0 %>%
+        </span>
+      </div>
+      <% _semPend.forEach(function(obj) { var prio = obj.priority || 'media'; %>
+      <div class="obj-row <%= obj.status === 'completado' ? 'done' : '' %>" id="tsem-<%= obj.id %>">
+        <div class="p-bar p-<%= prio %>" style="min-height:16px"></div>
+        <div class="obj-check <%= obj.status === 'completado' ? 'done' : '' %>"
+          onclick="toggleSemanal(<%= obj.id %>, '<%= obj.status %>')"><%= obj.status === 'completado' ? '✓' : '' %></div>
+        <span class="obj-name"><%= obj.name %></span>
+        <button class="obj-del" onclick="eliminarSemanal(<%= obj.id %>)">✕</button>
+      </div>
+      <% }); %>
+      <% } else { %>
+      <p style="font-size:.78rem;color:var(--text-muted)">Sin objetivos esta semana.</p>
+      <% } %>
+    </div>
+
+    <!-- Metas del mes -->
+    <div class="side-card">
+      <div class="side-card-hdr">
+        <span class="side-card-ttl">ESTE MES</span>
+        <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:.22rem .5rem" onclick="toggleModal('modal-nuevo-mensual')">+</button>
+      </div>
+      <% if (_monthly.length > 0) { %>
+      <div style="display:flex;align-items:center;gap:.45rem;margin-bottom:.6rem">
+        <div class="prog-strip">
+          <div class="prog-fill" style="width:<%= _monthly.length > 0 ? Math.round(_mesDone/_monthly.length*100) : 0 %>%;background:var(--green)"></div>
+        </div>
+        <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text-muted);white-space:nowrap">
+          <%= _monthly.length > 0 ? Math.round(_mesDone/_monthly.length*100) : 0 %>%
+        </span>
+      </div>
+      <% _monthly.forEach(function(obj) { %>
+      <div class="obj-row <%= obj.status === 'completado' ? 'done' : '' %>" id="tmes-<%= obj.id %>">
+        <div class="obj-check <%= obj.status === 'completado' ? 'done' : '' %>"
+          onclick="toggleMensual(<%= obj.id %>, '<%= obj.status %>')"><%= obj.status === 'completado' ? '✓' : '' %></div>
+        <span class="obj-name"><%= obj.name %></span>
+        <% if (obj.category) { %>
+        <span style="font-size:.57rem;color:var(--text-muted);flex-shrink:0"><%= obj.category %></span>
+        <% } %>
+        <button class="obj-del" onclick="eliminarMensual(<%= obj.id %>)">✕</button>
+      </div>
+      <% }); %>
+      <% } else { %>
+      <p style="font-size:.78rem;color:var(--text-muted)">Sin metas este mes.</p>
+      <% } %>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Modal: nueva tarea semanal -->
+<div class="modal-overlay" id="modal-nuevo-semanal" onclick="closeOnOverlay(event,'modal-nuevo-semanal')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Objetivo de la semana</h3>
+      <button onclick="toggleModal('modal-nuevo-semanal')" class="modal-close">✕</button>
+    </div>
+    <form id="form-semanal" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">Objetivo</label>
+        <input type="text" name="name" id="inp-sem-name" class="input" required placeholder="Ej: Terminar informe Q1" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+        <div class="form-field">
+          <label class="field-label">Área</label>
+          <select name="area" class="input">
+            <option value="trabajo">Trabajo</option><option value="estudio">Estudio</option>
+            <option value="ejercicio">Ejercicio</option><option value="familia">Familia</option>
+            <option value="finanzas">Finanzas</option><option value="personal" selected>Personal</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Prioridad</label>
+          <select name="priority" class="input">
+            <option value="alta">🔴 Alta</option>
+            <option value="media" selected>🟡 Media</option>
+            <option value="baja">⚫ Baja</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-nuevo-semanal')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: nueva meta mensual -->
+<div class="modal-overlay" id="modal-nuevo-mensual" onclick="closeOnOverlay(event,'modal-nuevo-mensual')">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Meta del mes</h3>
+      <button onclick="toggleModal('modal-nuevo-mensual')" class="modal-close">✕</button>
+    </div>
+    <form id="form-mensual" class="modal-form">
+      <div class="form-field">
+        <label class="field-label">Meta</label>
+        <input type="text" name="name" id="inp-mes-name" class="input" required placeholder="Ej: Leer 2 libros" />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Descripción <span style="color:var(--text-muted)">(opcional)</span></label>
+        <textarea name="description" class="textarea" rows="2" placeholder="Detalles…"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Categoría</label>
+        <select name="category" class="input">
+          <option value="personal">Personal</option><option value="profesional">Profesional</option>
+          <option value="salud">Salud</option><option value="finanzas">Finanzas</option>
+          <option value="familia">Familia</option><option value="aprendizaje">Aprendizaje</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-nuevo-mensual')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+var TODAY_AG  = '<%= _today %>';
+var DIA_VISTA = '<%= _diaVista %>';
+var optsOpen  = false;
+
+function focusAdd() {
+  document.getElementById('inp-tarea').focus();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function toggleAddOpts() {
+  optsOpen = !optsOpen;
+  document.getElementById('add-opts').style.display = optsOpen ? 'grid' : 'none';
+  document.getElementById('btn-opts').textContent   = optsOpen ? '✕ Cerrar opciones' : '⚙ Opciones';
+}
+
+// ── Cambiar día ──────────────────────────────
+function cambiarDia(fecha) {
+  DIA_VISTA = fecha;
+
+  // Update week strip
+  document.querySelectorAll('.week-day').forEach(function(el) {
+    el.classList.toggle('selected', el.getAttribute('data-fecha') === fecha);
+  });
+
+  // Update title
+  var mapa = {0:'Domingo',1:'Lunes',2:'Martes',3:'Miércoles',4:'Jueves',5:'Viernes',6:'Sábado'};
+  var d    = new Date(fecha + 'T00:00:00');
+  var lbl  = fecha === TODAY_AG ? 'Hoy' : mapa[d.getDay()] + ' ' + fecha.slice(5).replace('-','/');
+  document.getElementById('dia-titulo').textContent = lbl;
+
+  progressStart();
+  fetch('/agenda/tareas-dia?fecha=' + fecha)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      progressDone();
+      renderTareas(data.tareas || []);
+      renderMiniCal();
+    })
+    .catch(function() { progressDone(); });
+}
+
+function renderTareas(tareas) {
+  var lista = document.getElementById('lista-dia');
+  var done  = tareas.filter(function(t) { return t.completado; }).length;
+  var total = tareas.length;
+  var pct   = total > 0 ? Math.round(done / total * 100) : 0;
+
+  var pl = document.getElementById('prog-label');
+  var pb = document.getElementById('prog-bar');
+  if (pl) pl.textContent = done + '/' + total;
+  if (pb) {
+    pb.style.width      = pct + '%';
+    pb.style.background = pct >= 80 ? 'var(--green)' : pct >= 40 ? 'var(--accent)' : 'var(--red)';
+  }
+  if (!pb && total > 0) {
+    // Re-add progress bar if it was hidden on initial render (0 tasks → no bar)
+    var header = document.querySelector('.card-header');
+    if (header) {
+      var strip = '<div class="prog-strip" style="width:56px"><div class="prog-fill" id="prog-bar" style="width:' + pct + '%;background:var(--green)"></div></div>';
+      var span  = '<span style="font-family:var(--font-mono);font-size:.7rem;color:var(--text-muted)" id="prog-label">' + done + '/' + total + '</span>';
+      // (already in DOM from initial render — won't reach here unless tasks added from 0)
+    }
+  }
+
+  if (!lista) return;
+  if (total === 0) {
+    lista.innerHTML = '<div class="task-empty"><div class="ei">📋</div><p>Sin tareas para este día.<br>Añade una abajo.</p></div>';
+    return;
+  }
+  lista.innerHTML = tareas.map(function(t) {
+    var prio = t.priority || 'media';
+    return '<div class="t-item ' + (t.completado ? 'done' : '') + '" id="ti-' + t.id + '">' +
+      '<div class="p-bar p-' + prio + '"></div>' +
+      '<div class="t-check ' + (t.completado ? 'done' : '') + '" onclick="toggleTarea(' + t.id + ')">' + (t.completado ? '✓' : '') + '</div>' +
+      '<div class="t-body">' +
+        '<div class="t-name">' + esc(t.nombre) + '</div>' +
+        ((t.hora || t.area) ? '<div class="t-meta">' +
+          (t.hora ? '<span class="t-hora">⏰ ' + t.hora + '</span>' : '') +
+          (t.area ? '<span class="t-area">' + esc(t.area) + '</span>' : '') +
+        '</div>' : '') +
+      '</div>' +
+      '<button class="t-del" onclick="eliminarTarea(' + t.id + ')" title="Eliminar">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Añadir tarea ─────────────────────────────
+function addTarea() {
+  var nombre   = document.getElementById('inp-tarea').value.trim();
+  var hora     = document.getElementById('inp-hora').value || '';
+  var priority = document.getElementById('inp-prio').value || 'media';
+  var area     = document.getElementById('inp-area').value || '';
+  if (!nombre) { document.getElementById('inp-tarea').focus(); return; }
+
+  apiFetch('/agenda/dia', {
+    method: 'POST',
+    body: { fecha: DIA_VISTA, nombre: nombre, hora: hora, tipo: DIA_VISTA === TODAY_AG ? 'dia' : 'agenda', priority: priority, area: area }
+  }).then(function() {
+    document.getElementById('inp-tarea').value = '';
+    document.getElementById('inp-hora').value  = '';
+    cambiarDia(DIA_VISTA);
+    actualizarDotSemana(DIA_VISTA);
+    showToast('Tarea añadida', 'success');
+  });
+}
+
+document.getElementById('inp-tarea').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') addTarea();
+});
+
+// ── Toggle tarea ─────────────────────────────
+function toggleTarea(id) {
+  apiFetch('/agenda/dia/' + id + '/toggle', { method: 'POST' })
+    .then(function(data) {
+      cambiarDia(DIA_VISTA);
+      actualizarDotSemana(DIA_VISTA);
+      if (data.completado) showToast('✓ Tarea completada', 'success');
+    });
+}
+
+// ── Eliminar tarea ───────────────────────────
+function eliminarTarea(id) {
+  var el = document.getElementById('ti-' + id);
+  if (el) { el.style.opacity = '0.3'; el.style.transform = 'scale(.97)'; }
+  apiFetch('/agenda/dia/' + id + '/delete', { method: 'POST' })
+    .then(function() {
+      cambiarDia(DIA_VISTA);
+      actualizarDotSemana(DIA_VISTA);
+      showToast('Tarea eliminada', 'warning');
+    })
+    .catch(function() { if (el) { el.style.opacity = ''; el.style.transform = ''; } });
+}
+
+// ── Toggle semanal ───────────────────────────
+function toggleSemanal(id, status) {
+  var nuevoStatus = status === 'completado' ? 'pendiente' : 'completado';
+  apiFetch('/agenda/semanal/' + id + '/status', {
+    method: 'POST',
+    body: { status: nuevoStatus, progress: nuevoStatus === 'completado' ? 100 : 0 }
+  }).then(function() {
+    var row  = document.getElementById('tsem-' + id);
+    var chk  = row && row.querySelector('.obj-check');
+    var done = nuevoStatus === 'completado';
+    if (row) row.classList.toggle('done', done);
+    if (chk) {
+      chk.classList.toggle('done', done);
+      chk.textContent = done ? '✓' : '';
+      chk.onclick = function() { toggleSemanal(id, nuevoStatus); };
+    }
+    if (done) showToast('Objetivo completado 🎯', 'success');
+  });
+}
+
+function eliminarSemanal(id) {
+  apiFetch('/agenda/semanal/' + id, { method: 'DELETE' })
+    .then(function() {
+      var el = document.getElementById('tsem-' + id);
+      if (el) el.remove();
+      showToast('Objetivo eliminado', 'warning');
+    });
+}
+
+// ── Toggle mensual ───────────────────────────
+function toggleMensual(id, status) {
+  var nuevoStatus = status === 'completado' ? 'pendiente' : 'completado';
+  apiFetch('/agenda/mensual/' + id + '/update', {
+    method: 'POST',
+    body: { status: nuevoStatus, percentage: nuevoStatus === 'completado' ? 100 : 0 }
+  }).then(function() {
+    var row  = document.getElementById('tmes-' + id);
+    var chk  = row && row.querySelector('.obj-check');
+    var done = nuevoStatus === 'completado';
+    if (row) row.classList.toggle('done', done);
+    if (chk) {
+      chk.classList.toggle('done', done);
+      chk.textContent = done ? '✓' : '';
+      chk.onclick = function() { toggleMensual(id, nuevoStatus); };
+    }
+    if (done) showToast('Meta completada 🎉', 'success');
+  });
+}
+
+function eliminarMensual(id) {
+  apiFetch('/agenda/mensual/' + id, { method: 'DELETE' })
+    .then(function() {
+      var el = document.getElementById('tmes-' + id);
+      if (el) el.remove();
+      showToast('Meta eliminada', 'warning');
+    });
+}
+
+// ── Modal forms (AJAX submit) ─────────────────
+document.getElementById('form-semanal').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var fd = new FormData(this);
+  apiFetch('/agenda/semanal', {
+    method: 'POST',
+    body: Object.fromEntries(fd.entries())
+  }).then(function() {
+    toggleModal('modal-nuevo-semanal');
+    document.getElementById('inp-sem-name').value = '';
+    showToast('Objetivo de semana añadido', 'success');
+    setTimeout(function() { window.location.reload(); }, 800);
+  });
+});
+
+document.getElementById('form-mensual').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var fd = new FormData(this);
+  apiFetch('/agenda/mensual', {
+    method: 'POST',
+    body: Object.fromEntries(fd.entries())
+  }).then(function() {
+    toggleModal('modal-nuevo-mensual');
+    document.getElementById('inp-mes-name').value = '';
+    showToast('Meta del mes añadida', 'success');
+    setTimeout(function() { window.location.reload(); }, 800);
+  });
+});
+
+// ── Dots week strip ──────────────────────────
+function actualizarDotSemana(fecha) {
+  fetch('/agenda/tareas-dia?fecha=' + fecha)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var tareas = data.tareas || [];
+      var done   = tareas.filter(function(t) { return t.completado; }).length;
+      var total  = tareas.length;
+      var pct    = total > 0 ? Math.round(done / total * 100) : 0;
+      var color  = pct >= 80 ? '#22c55e' : pct >= 40 ? 'var(--accent)' : 'var(--text-muted)';
+      var dayEl  = document.querySelector('.week-day[data-fecha="' + fecha + '"]');
+      if (!dayEl) return;
+      var fill = dayEl.querySelector('.wd-prog-fill');
+      if (fill) { fill.style.width = pct + '%'; fill.style.background = color; }
+    });
+}
+
+// ── Mini Calendario ──────────────────────────
+var MESES_N  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+var DIAS_H   = ['Lu','Ma','Mi','Ju','Vi','Sá','Do'];
+var calMes   = new Date().getMonth();
+var calAnio  = new Date().getFullYear();
+var calData  = {};   // { fecha: { checkin, nTareas } }
+
+function cargarCalData() {
+  var m = String(calMes + 1).padStart(2, '0');
+  Promise.all([
+    fetch('/api/calendario?mes=' + (calMes + 1) + '&anio=' + calAnio)
+      .then(function(r) { return r.json(); }).catch(function() { return {}; }),
+    fetch('/agenda/tareas-mes?mes=' + (calMes + 1) + '&anio=' + calAnio)
+      .then(function(r) { return r.json(); }).catch(function() { return {}; })
+  ]).then(function(results) {
+    calData = {};
+    (results[0].checkins || []).forEach(function(c) { if (!calData[c.date]) calData[c.date] = {}; calData[c.date].checkin = c; });
+    (results[1].tareas   || []).forEach(function(t) {
+      if (!calData[t.fecha]) calData[t.fecha] = {};
+      calData[t.fecha].nTareas = (calData[t.fecha].nTareas || 0) + 1;
+    });
+    renderMiniCal();
+  });
+}
+
+function renderMiniCal() {
+  var grid  = document.getElementById('mini-cal-grid');
+  var title = document.getElementById('mini-cal-title');
+  if (!grid || !title) return;
+  title.textContent = MESES_N[calMes].slice(0, 3) + ' ' + calAnio;
+  grid.innerHTML = '';
+  DIAS_H.forEach(function(d) {
+    var el = document.createElement('div'); el.className = 'mini-cal-dh'; el.textContent = d; grid.appendChild(el);
+  });
+  var offset    = new Date(calAnio, calMes, 1).getDay(); offset = offset === 0 ? 6 : offset - 1;
+  var diasEnMes = new Date(calAnio, calMes + 1, 0).getDate();
+  var hoy       = new Date();
+  for (var i = 0; i < offset; i++) {
+    var el = document.createElement('div'); el.className = 'mini-cal-d otro-mes'; grid.appendChild(el);
+  }
+  for (var dia = 1; dia <= diasEnMes; dia++) {
+    var fecha  = calAnio + '-' + String(calMes + 1).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+    var info   = calData[fecha] || {};
+    var esHoy  = hoy.getDate() === dia && hoy.getMonth() === calMes && hoy.getFullYear() === calAnio;
+    var esSel  = fecha === DIA_VISTA;
+    var el     = document.createElement('div');
+    el.className = 'mini-cal-d' + (esSel ? ' selected-day' : esHoy ? ' hoy' : '');
+    el.title     = fecha + (info.nTareas ? ' · ' + info.nTareas + ' tarea(s)' : '');
+    var num = document.createElement('span'); num.textContent = dia; el.appendChild(num);
+    if (!esSel && info.checkin) {
+      var c     = info.checkin;
+      var score = Math.round((c.energy + c.mood + c.clarity + (10 - c.anxiety)) / 4 * 10);
+      var dot   = document.createElement('div'); dot.className = 'mini-cal-dot';
+      dot.style.background = score >= 70 ? '#22c55e' : score >= 50 ? 'var(--accent)' : '#ef4444';
+      el.appendChild(dot);
+    } else if (!esSel && info.nTareas) {
+      var dot = document.createElement('div'); dot.className = 'mini-cal-dot'; dot.style.background = 'var(--accent)';
+      el.appendChild(dot);
+    }
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', (function(f) { return function() { cambiarDia(f); renderMiniCal(); }; })(fecha));
+    grid.appendChild(el);
+  }
+}
+
+function calNav(dir) {
+  calMes += dir;
+  if (calMes > 11) { calMes = 0; calAnio++; }
+  if (calMes < 0)  { calMes = 11; calAnio--; }
+  cargarCalData();
+}
+
+cargarCalData();
+</script>
+
+<%- include('partials/footer') %>

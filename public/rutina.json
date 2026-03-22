@@ -1,0 +1,658 @@
+{
+  "lunes": [
+    {
+      "inicio": "06:00",
+      "fin": "06:10",
+      "bloque": "Despertar",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:10",
+      "fin": "06:25",
+      "bloque": "Bano y activacion",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:25",
+      "fin": "06:35",
+      "bloque": "Agua cafe o te",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "06:35",
+      "fin": "06:45",
+      "bloque": "Cuaderno y chequeo mental",
+      "categoria": "general"
+    },
+    {
+      "inicio": "06:45",
+      "fin": "07:10",
+      "bloque": "Ejercicio de fuerza",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "07:10",
+      "fin": "07:30",
+      "bloque": "Ducha y orden personal",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:30",
+      "fin": "08:00",
+      "bloque": "Desayuno",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "08:00",
+      "fin": "08:30",
+      "bloque": "Estudio Python IA",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "08:30",
+      "fin": "09:00",
+      "bloque": "Preparacion trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "13:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "13:00",
+      "fin": "14:00",
+      "bloque": "Almuerzo",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "14:00",
+      "fin": "18:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "18:00",
+      "fin": "18:30",
+      "bloque": "termino de trabajo",
+      "categoria": "trayecto"
+    },
+    {
+      "inicio": "18:30",
+      "fin": "20:00",
+      "bloque": "Casa Hijos Vida real",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "20:00",
+      "fin": "20:30",
+      "bloque": "Cena",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "20:30",
+      "fin": "21:00",
+      "bloque": "Cierre del dia",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "21:00",
+      "fin": "22:30",
+      "bloque": "Bajar revoluciones",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "22:30",
+      "fin": "23:00",
+      "bloque": "Dormir",
+      "categoria": "descanso"
+    }
+  ],
+  "martes": [
+    {
+      "inicio": "06:00",
+      "fin": "06:10",
+      "bloque": "Despertar",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:10",
+      "fin": "06:25",
+      "bloque": "Bano y activacion",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:25",
+      "fin": "06:35",
+      "bloque": "Agua cafe o te",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "06:35",
+      "fin": "06:45",
+      "bloque": "Cuaderno y chequeo mental",
+      "categoria": "general"
+    },
+    {
+      "inicio": "06:45",
+      "fin": "06:55",
+      "bloque": "Movilidad corta",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "06:55",
+      "fin": "07:00",
+      "bloque": "Prepararse y salir",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:00",
+      "fin": "08:00",
+      "bloque": "Trayecto",
+      "categoria": "trayecto"
+    },
+    {
+      "inicio": "08:00",
+      "fin": "08:05",
+      "bloque": "Dejar ninos en colegio",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "08:05",
+      "fin": "08:30",
+      "bloque": "Trayecto a oficina",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "08:30",
+      "fin": "09:00",
+      "bloque": "Desayuno en oficina",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "13:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "13:00",
+      "fin": "14:00",
+      "bloque": "Almuerzo",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "14:00",
+      "fin": "18:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "18:00",
+      "fin": "19:00",
+      "bloque": "Vuelta a casa",
+      "categoria": "trayecto"
+    },
+    {
+      "inicio": "19:00",
+      "fin": "20:00",
+      "bloque": "Casa Hijos Bajar revoluciones",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "20:00",
+      "fin": "20:20",
+      "bloque": "Repaso minimo",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "20:20",
+      "fin": "22:30",
+      "bloque": "Cierre suave del dia",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "22:30",
+      "fin": "23:00",
+      "bloque": "Dormir",
+      "categoria": "descanso"
+    }
+  ],
+  "miercoles": [
+    {
+      "inicio": "06:00",
+      "fin": "06:10",
+      "bloque": "Despertar",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:10",
+      "fin": "06:25",
+      "bloque": "Bano y activacion",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:25",
+      "fin": "06:35",
+      "bloque": "Agua cafe o te",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "06:35",
+      "fin": "06:45",
+      "bloque": "Cuaderno y chequeo mental",
+      "categoria": "general"
+    },
+    {
+      "inicio": "06:45",
+      "fin": "07:10",
+      "bloque": "Ejercicio de fuerza",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "07:10",
+      "fin": "07:30",
+      "bloque": "Ducha y orden personal",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:30",
+      "fin": "08:00",
+      "bloque": "Desayuno",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "08:00",
+      "fin": "08:30",
+      "bloque": "Estudio Python IA",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "08:30",
+      "fin": "09:00",
+      "bloque": "Preparacion trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "13:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "13:00",
+      "fin": "14:00",
+      "bloque": "Almuerzo",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "14:00",
+      "fin": "18:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "18:00",
+      "fin": "18:30",
+      "bloque": "termino de trabajo",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "18:30",
+      "fin": "20:00",
+      "bloque": "Casa Hijos Vida real",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "20:00",
+      "fin": "20:30",
+      "bloque": "Cena",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "20:30",
+      "fin": "21:00",
+      "bloque": "Cierre del dia",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "21:00",
+      "fin": "22:30",
+      "bloque": "Bajar revoluciones",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "22:30",
+      "fin": "23:00",
+      "bloque": "Dormir",
+      "categoria": "descanso"
+    }
+  ],
+  "jueves": [
+    {
+      "inicio": "06:00",
+      "fin": "06:10",
+      "bloque": "Despertar",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:10",
+      "fin": "06:25",
+      "bloque": "Bano y activacion",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:25",
+      "fin": "06:35",
+      "bloque": "Agua cafe o te",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "06:35",
+      "fin": "06:45",
+      "bloque": "Cuaderno y chequeo mental",
+      "categoria": "general"
+    },
+    {
+      "inicio": "06:45",
+      "fin": "06:55",
+      "bloque": "Movilidad corta",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "06:55",
+      "fin": "07:00",
+      "bloque": "Prepararse y salir",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:00",
+      "fin": "08:00",
+      "bloque": "Trayecto",
+      "categoria": "trayecto"
+    },
+    {
+      "inicio": "08:00",
+      "fin": "08:05",
+      "bloque": "Dejar ninos en colegio",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "08:05",
+      "fin": "08:30",
+      "bloque": "Trayecto a oficina",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "08:30",
+      "fin": "09:00",
+      "bloque": "Desayuno en oficina",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "13:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "13:00",
+      "fin": "14:00",
+      "bloque": "Almuerzo",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "14:00",
+      "fin": "18:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "18:00",
+      "fin": "19:00",
+      "bloque": "Vuelta a casa",
+      "categoria": "trayecto"
+    },
+    {
+      "inicio": "19:00",
+      "fin": "20:00",
+      "bloque": "Casa Hijos Bajar revoluciones",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "20:00",
+      "fin": "20:20",
+      "bloque": "Repaso minimo",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "20:20",
+      "fin": "22:30",
+      "bloque": "Cierre suave del dia",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "22:30",
+      "fin": "23:00",
+      "bloque": "Dormir",
+      "categoria": "descanso"
+    }
+  ],
+  "viernes": [
+    {
+      "inicio": "06:00",
+      "fin": "06:10",
+      "bloque": "Despertar",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:10",
+      "fin": "06:25",
+      "bloque": "Bano y activacion",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "06:25",
+      "fin": "06:35",
+      "bloque": "Agua cafe o te",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "06:35",
+      "fin": "06:45",
+      "bloque": "Cuaderno y chequeo mental",
+      "categoria": "general"
+    },
+    {
+      "inicio": "06:45",
+      "fin": "07:10",
+      "bloque": "Ejercicio de fuerza",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "07:10",
+      "fin": "07:30",
+      "bloque": "Ducha y orden personal",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:30",
+      "fin": "08:00",
+      "bloque": "Desayuno",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "08:00",
+      "fin": "08:30",
+      "bloque": "Estudio Python IA",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "08:30",
+      "fin": "09:00",
+      "bloque": "Preparacion trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "13:00",
+      "bloque": "Trabajo",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "13:00",
+      "fin": "14:00",
+      "bloque": "Almuerzo",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "14:00",
+      "fin": "18:00",
+      "bloque": "Trabajo y cierre semanal",
+      "categoria": "trabajo"
+    },
+    {
+      "inicio": "18:00",
+      "fin": "18:30",
+      "bloque": "termino de trabajo",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "18:30",
+      "fin": "20:00",
+      "bloque": "Casa Hijos Vida real",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "20:00",
+      "fin": "20:30",
+      "bloque": "Cena",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "20:30",
+      "fin": "21:00",
+      "bloque": "Cierre semanal breve",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "21:00",
+      "fin": "22:30",
+      "bloque": "Bajar revoluciones",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "22:30",
+      "fin": "23:00",
+      "bloque": "Dormir",
+      "categoria": "descanso"
+    }
+  ],
+  "sabado": [
+    {
+      "inicio": "06:30",
+      "fin": "07:00",
+      "bloque": "Despertar tranquilo",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:00",
+      "fin": "07:20",
+      "bloque": "Desayuno",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "07:20",
+      "fin": "07:40",
+      "bloque": "Chequeo semanal",
+      "categoria": "general"
+    },
+    {
+      "inicio": "07:40",
+      "fin": "08:20",
+      "bloque": "Bloque tecnico practico",
+      "categoria": "estudio"
+    },
+    {
+      "inicio": "08:20",
+      "fin": "09:00",
+      "bloque": "Ejercicio Caminata larga",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "12:00",
+      "bloque": "Vida real Familia Casa",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "12:00",
+      "fin": "12:30",
+      "bloque": "Revision financiera",
+      "categoria": "general"
+    },
+    {
+      "inicio": "12:30",
+      "fin": "22:30",
+      "bloque": "Familia Descanso Vida real",
+      "categoria": "familia"
+    }
+  ],
+  "domingo": [
+    {
+      "inicio": "07:00",
+      "fin": "07:30",
+      "bloque": "Despertar tranquilo",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "07:30",
+      "fin": "08:00",
+      "bloque": "Desayuno",
+      "categoria": "comida"
+    },
+    {
+      "inicio": "08:00",
+      "fin": "08:20",
+      "bloque": "Cuaderno Prioridades semanales",
+      "categoria": "general"
+    },
+    {
+      "inicio": "08:20",
+      "fin": "08:40",
+      "bloque": "Orden basico",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "08:40",
+      "fin": "09:00",
+      "bloque": "Movilidad suave Caminata corta",
+      "categoria": "ejercicio"
+    },
+    {
+      "inicio": "09:00",
+      "fin": "20:00",
+      "bloque": "Familia Descanso Vida real",
+      "categoria": "familia"
+    },
+    {
+      "inicio": "20:00",
+      "fin": "20:20",
+      "bloque": "Preparacion de la semana",
+      "categoria": "manana"
+    },
+    {
+      "inicio": "20:20",
+      "fin": "22:30",
+      "bloque": "Cierre suave",
+      "categoria": "descanso"
+    },
+    {
+      "inicio": "22:30",
+      "fin": "23:00",
+      "bloque": "Dormir",
+      "categoria": "descanso"
+    }
+  ]
+}

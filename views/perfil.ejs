@@ -1,0 +1,548 @@
+<%- include('partials/header') %>
+
+<style>
+.perfil-hero {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:1.5rem;
+  display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;
+  margin-bottom:1.25rem;
+}
+.avatar-ring {
+  width:64px; height:64px; border-radius:50%;
+  background:var(--accent-dim); border:2px solid var(--accent);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-size:1.3rem; font-weight:700;
+  color:var(--accent); flex-shrink:0;
+}
+.score-big {
+  position:relative; flex-shrink:0;
+}
+.score-big-center {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  text-align:center; line-height:1;
+}
+.highlight-grid {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:.75rem;
+  margin-bottom:1.25rem;
+}
+@media(max-width:700px) { .highlight-grid { grid-template-columns:repeat(2,1fr); } }
+.hl-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.85rem 1rem; text-align:center;
+}
+.hl-val { font-family:var(--font-mono); font-size:1.6rem; font-weight:700; line-height:1; }
+.hl-label { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); margin-top:.3rem; }
+.hl-sub { font-size:.7rem; color:var(--text-soft); margin-top:.15rem; }
+
+/* habit table */
+.htable { width:100%; border-collapse:collapse; font-size:.8rem; }
+.htable th { font-size:.62rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); padding:.4rem .6rem; text-align:left; border-bottom:1px solid var(--border); }
+.htable td { padding:.45rem .6rem; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.htable tr:last-child td { border-bottom:none; }
+.hbar-wrap { width:80px; height:5px; background:var(--surface-3); border-radius:3px; overflow:hidden; display:inline-block; vertical-align:middle; }
+.hbar-fill { height:100%; border-radius:3px; }
+
+/* insight cards */
+.insight-row { display:flex; flex-direction:column; gap:.5rem; }
+.insight-item {
+  padding:.6rem .85rem; border-radius:8px; font-size:.82rem;
+  border-left:3px solid var(--accent); background:var(--surface-2);
+}
+.insight-item.good { border-left-color:var(--green); }
+.insight-item.warn { border-left-color:#f59e0b; }
+.insight-item.bad  { border-left-color:var(--red); }
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mi Perfil</h1>
+    <p class="page-subtitle">Reporte personal · últimos 30 días</p>
+  </div>
+  <div style="display:flex;gap:.5rem;align-items:center">
+    <% if (perfil && perfil.nombre) { %><span class="badge badge-green">✓ Perfil activo</span><% } %>
+    <button type="button" class="btn btn-primary btn-sm" onclick="toggleEditar()">Editar perfil</button>
+  </div>
+</div>
+
+<!-- HERO CARD -->
+<% var _sum = locals.summary; var _checkins = locals.checkins || []; %>
+<% var _bienScore = _sum ? Math.min(100, Math.round((parseFloat(_sum.avgEnergy)*10 + parseFloat(_sum.avgMood)*10 + parseFloat(_sum.avgClarity)*10 + (10-parseFloat(_sum.avgAnxiety))*10)/4)) : 0; %>
+<div class="perfil-hero">
+
+  <!-- Avatar + nombre -->
+  <div style="display:flex;align-items:center;gap:1rem;flex:1;min-width:200px">
+    <div class="avatar-ring">
+      <%= (perfil && perfil.nombre) ? perfil.nombre.charAt(0).toUpperCase() : '?' %>
+    </div>
+    <div>
+      <div style="font-family:var(--font-mono);font-size:1.1rem;font-weight:700">
+        <%= (perfil && perfil.nombre) ? perfil.nombre : 'Sin nombre' %>
+        <% if (perfil && perfil.edad) { %><span style="font-weight:400;color:var(--text-muted);font-size:.85rem">, <%= perfil.edad %> años</span><% } %>
+      </div>
+      <% if (perfil && perfil.ocupacion && perfil.ocupacion.length > 0) { %>
+      <div style="font-size:.8rem;color:var(--text-muted);margin-top:.15rem"><%= perfil.ocupacion[0] %><% if (perfil.situacion_familiar && perfil.situacion_familiar.length>0){ %> · <%= perfil.situacion_familiar[0] %><% } %></div>
+      <% } %>
+      <% if (perfil && perfil.objetivos && perfil.objetivos.length > 0) { %>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem">
+        <% perfil.objetivos.slice(0,3).forEach(function(o){ %>
+        <span class="badge badge-accent" style="font-size:.6rem"><%= o %></span>
+        <% }); %>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Score bienestar -->
+  <% if (_sum && _sum.totalCheckins > 0) { %>
+  <div style="text-align:center;flex-shrink:0">
+    <div class="score-big">
+      <svg width="100" height="100" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="7"/>
+        <circle cx="50" cy="50" r="42" fill="none"
+          stroke="<%= _bienScore>=70?'var(--green)':_bienScore>=45?'var(--accent)':'var(--red)' %>"
+          stroke-width="7" stroke-dasharray="263.9"
+          stroke-dashoffset="<%= Math.round(263.9*(1-_bienScore/100)) %>"
+          stroke-linecap="round" transform="rotate(-90 50 50)"/>
+      </svg>
+      <div class="score-big-center">
+        <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:<%= _bienScore>=70?'var(--green)':_bienScore>=45?'var(--accent)':'var(--red)' %>"><%= _bienScore %></div>
+        <div style="font-size:.6rem;color:var(--text-muted)">/100</div>
+      </div>
+    </div>
+    <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-top:.2rem">Score bienestar</div>
+    <div style="font-size:.72rem;font-weight:600;margin-top:.1rem;color:<%= _bienScore>=70?'var(--green)':_bienScore>=45?'var(--accent)':'var(--red)' %>">
+      <%= _bienScore>=80?'Excelente':_bienScore>=70?'Muy bien':_bienScore>=55?'Bien':_bienScore>=40?'Regular':'A mejorar' %>
+    </div>
+  </div>
+
+  <!-- Métricas rápidas -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;min-width:180px">
+    <% [
+      {l:'Energía',  v:_sum.avgEnergy,  c:'var(--accent)',  u:'/10'},
+      {l:'Ánimo',    v:_sum.avgMood,    c:'#a78bfa',         u:'/10'},
+      {l:'Claridad', v:_sum.avgClarity, c:'#38bdf8',         u:'/10'},
+      {l:'Ansiedad', v:_sum.avgAnxiety, c:'#fb7185',         u:'/10'},
+      {l:'Sueño',    v:_sum.avgSleep,   c:'var(--green)',    u:'h'},
+      {l:'Chequeos', v:_sum.totalCheckins, c:'var(--text)', u:'d'},
+    ].forEach(function(m){ %>
+    <div style="background:var(--surface-2);border-radius:6px;padding:.35rem .55rem">
+      <div style="font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em"><%= m.l %></div>
+      <div style="font-family:var(--font-mono);font-size:.9rem;font-weight:700;color:<%= m.c %>"><%= m.v %><span style="font-size:.65rem;color:var(--text-muted)"><%= m.u %></span></div>
+    </div>
+    <% }); %>
+  </div>
+  <% } else { %>
+  <p style="font-size:.85rem;color:var(--text-muted)">Sin datos aún. Registra tu primer chequeo.</p>
+  <% } %>
+</div>
+
+<% if (_sum && _sum.totalCheckins > 0) { %>
+
+<!-- HIGHLIGHTS -->
+<div class="highlight-grid">
+  <div class="hl-card">
+    <div class="hl-val" style="color:var(--green)"><%= _sum.exerciseDays %></div>
+    <div class="hl-label">💪 Días ejercicio</div>
+    <div class="hl-sub">de <%= _sum.totalCheckins %> registrados</div>
+  </div>
+  <div class="hl-card">
+    <div class="hl-val" style="color:#38bdf8"><%= _sum.studyDays %></div>
+    <div class="hl-label">📚 Días estudio</div>
+    <div class="hl-sub">de <%= _sum.totalCheckins %> registrados</div>
+  </div>
+  <div class="hl-card">
+    <% var _hStats = locals.habitStats || []; %>
+    <% var _bestStreak = _hStats.length ? Math.max.apply(null, _hStats.map(function(h){return h.streak||0})) : 0; %>
+    <div class="hl-val" style="color:var(--accent)"><%= _bestStreak %><span style="font-size:1rem">d</span></div>
+    <div class="hl-label">🔥 Mejor racha</div>
+    <div class="hl-sub"><% if (_bestStreak > 0) { var _bsh = _hStats.find(function(h){return h.streak===_bestStreak}); if(_bsh){ %><%= _bsh.name %><% }} %></div>
+  </div>
+  <div class="hl-card">
+    <% var _mainDays = _checkins.filter(function(c){return c.completed_main}).length; %>
+    <div class="hl-val" style="color:#a78bfa"><%= _mainDays %></div>
+    <div class="hl-label">⭐ Bloque principal</div>
+    <div class="hl-sub">días completados</div>
+  </div>
+</div>
+
+<!-- DOS COLUMNAS: CHART + INSIGHTS -->
+<div class="two-col" style="margin-bottom:1.25rem;align-items:start">
+
+  <!-- Gráfica -->
+  <% if (_checkins.length > 1) { %>
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">📈 Evolución 30 días</h2></div>
+    <div style="height:200px;position:relative"><canvas id="perfilChart"></canvas></div>
+  </div>
+  <% } %>
+
+  <!-- Insights automáticos -->
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">💡 Insights</h2></div>
+    <div class="insight-row">
+      <% var avgE = parseFloat(_sum.avgEnergy); var avgA = parseFloat(_sum.avgAnxiety); var avgS = parseFloat(_sum.avgSleep); var avgM = parseFloat(_sum.avgMood); %>
+
+      <% if (avgE >= 7) { %>
+      <div class="insight-item good">⚡ Energía promedio alta (<%= _sum.avgEnergy %>/10). Vas muy bien.</div>
+      <% } else if (avgE < 5) { %>
+      <div class="insight-item bad">⚡ Energía promedio baja (<%= _sum.avgEnergy %>/10). Revisá sueño y rutina.</div>
+      <% } else { %>
+      <div class="insight-item warn">⚡ Energía en zona media (<%= _sum.avgEnergy %>/10). Podés mejorar.</div>
+      <% } %>
+
+      <% if (avgA >= 7) { %>
+      <div class="insight-item bad">😰 Ansiedad alta este mes (<%= _sum.avgAnxiety %>/10). Priorizá descompresión.</div>
+      <% } else if (avgA <= 4) { %>
+      <div class="insight-item good">😌 Ansiedad controlada (<%= _sum.avgAnxiety %>/10). Excelente.</div>
+      <% } else { %>
+      <div class="insight-item warn">😐 Ansiedad moderada (<%= _sum.avgAnxiety %>/10). Seguí monitoreando.</div>
+      <% } %>
+
+      <% if (avgS >= 7.5) { %>
+      <div class="insight-item good">😴 Sueño excelente · promedio <%= _sum.avgSleep %>h.</div>
+      <% } else if (avgS < 6.5) { %>
+      <div class="insight-item bad">😴 Sueño insuficiente · promedio <%= _sum.avgSleep %>h. Apuntá a 7-8h.</div>
+      <% } else { %>
+      <div class="insight-item warn">😴 Sueño aceptable · promedio <%= _sum.avgSleep %>h.</div>
+      <% } %>
+
+      <% var exPct = _sum.totalCheckins > 0 ? Math.round(_sum.exerciseDays/_sum.totalCheckins*100) : 0; %>
+      <% if (exPct >= 60) { %>
+      <div class="insight-item good">💪 Ejercicio <%= exPct %>% de los días. Muy consistente.</div>
+      <% } else if (exPct === 0) { %>
+      <div class="insight-item bad">💪 Sin ejercicio registrado este mes. Empezá con 3 días/semana.</div>
+      <% } else { %>
+      <div class="insight-item warn">💪 Ejercicio <%= exPct %>% de los días. Tratá de llegar al 60%.</div>
+      <% } %>
+
+      <% var _str2 = locals.strengths||[]; var _weak2 = locals.weaknesses||[]; %>
+      <% if (_str2.length > 0) { %>
+      <div class="insight-item good">✅ Hábito más sólido: <strong><%= _str2[0].name %></strong> (<%= _str2[0].rate7 %>% en 7 días)</div>
+      <% } %>
+      <% if (_weak2.length > 0) { %>
+      <div class="insight-item bad">⚠ Hábito más débil: <strong><%= _weak2[0].name %></strong> (<%= _weak2[0].rate7 %>% en 7 días)</div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- FORTALEZAS + DEBILIDADES -->
+<div class="two-col" style="margin-bottom:1.25rem">
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">💪 Fortalezas</h2><span class="badge badge-green">7 días</span></div>
+    <% if (_str2.length === 0) { %>
+    <p class="empty-state">Sin hábitos con alta consistencia aún.</p>
+    <% } else { _str2.forEach(function(h){ %>
+    <div style="margin-bottom:.65rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+        <span style="font-size:.83rem;font-weight:500"><%= h.name %></span>
+        <span style="font-family:var(--font-mono);font-size:.75rem;color:var(--green)"><%= h.rate7 %>%</span>
+      </div>
+      <div class="metric-bar"><div class="metric-fill" style="width:<%= h.rate7 %>%"></div></div>
+      <div style="font-size:.65rem;color:var(--text-muted);margin-top:.15rem"><%= h.area %> · Racha <%= h.streak %>d</div>
+    </div>
+    <% }); } %>
+  </div>
+  <div class="card">
+    <div class="card-header"><h2 class="card-title">⚠️ A mejorar</h2><span class="badge badge-warn">Reforzar</span></div>
+    <% if (_weak2.length === 0) { %>
+    <p class="empty-state">Sin áreas críticas. Buen trabajo.</p>
+    <% } else { _weak2.forEach(function(h){ %>
+    <div style="margin-bottom:.65rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.2rem">
+        <span style="font-size:.83rem;font-weight:500"><%= h.name %></span>
+        <span style="font-family:var(--font-mono);font-size:.75rem;color:var(--red)"><%= h.rate7 %>%</span>
+      </div>
+      <div class="metric-bar"><div class="metric-fill metric-fill--warn" style="width:<%= h.rate7 %>%"></div></div>
+      <div style="font-size:.65rem;color:var(--text-muted);margin-top:.15rem"><%= h.area %> · Racha <%= h.streak %>d</div>
+    </div>
+    <% }); } %>
+  </div>
+</div>
+
+<!-- TABLA DE HÁBITOS -->
+<% if (_hStats.length > 0) { %>
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="card-header">
+    <h2 class="card-title">📊 Rendimiento de Hábitos</h2>
+    <a href="/habits" class="btn btn-ghost btn-sm" style="font-size:.72rem">Gestionar →</a>
+  </div>
+  <div class="table-wrap">
+    <table class="htable">
+      <thead>
+        <tr>
+          <th>Hábito</th>
+          <th>Área</th>
+          <th>Racha</th>
+          <th>7 días</th>
+          <th>30 días</th>
+          <th>Tendencia</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% _hStats.forEach(function(h){ %>
+        <tr>
+          <td style="font-weight:500"><%= h.name %></td>
+          <td><span class="habit-area-tag" style="font-size:.6rem"><%= h.area %></span></td>
+          <td style="font-family:var(--font-mono);color:<%= h.streak>=7?'var(--accent)':'var(--text)' %>"><%= h.streak %>d <%= h.streak>=7?'🔥':'' %></td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <div class="hbar-wrap"><div class="hbar-fill" style="width:<%= h.rate7 %>%;background:<%= h.rate7>=70?'var(--green)':h.rate7>=40?'var(--accent)':'var(--red)' %>"></div></div>
+              <span style="font-family:var(--font-mono);font-size:.72rem;color:<%= h.rate7>=70?'var(--green)':h.rate7>=40?'var(--accent)':'var(--red)' %>"><%= h.rate7 %>%</span>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:.4rem">
+              <div class="hbar-wrap"><div class="hbar-fill" style="width:<%= h.rate30 %>%;background:<%= h.rate30>=70?'var(--green)':h.rate30>=40?'var(--accent)':'var(--red)' %>"></div></div>
+              <span style="font-family:var(--font-mono);font-size:.72rem"><%= h.rate30 %>%</span>
+            </div>
+          </td>
+          <td style="font-size:.75rem">
+            <% var diff = h.rate7 - h.rate30; %>
+            <% if (diff > 10) { %><span style="color:var(--green)">📈 +<%= diff %>%</span>
+            <% } else if (diff < -10) { %><span style="color:var(--red)">📉 <%= diff %>%</span>
+            <% } else { %><span style="color:var(--text-muted)">➡ Estable</span><% } %>
+          </td>
+        </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<% } %>
+
+<!-- CHART JS -->
+<% if (_checkins.length > 1) { %>
+<script>
+window.addEventListener('load', function() {
+  var D = <%- locals.chartData %>;
+  var ctx = document.getElementById('perfilChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: D.labels,
+      datasets: [
+        { label:'Energía',  data:D.energy,  borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.06)',  tension:.4, pointRadius:2, borderWidth:2, fill:true },
+        { label:'Ánimo',    data:D.mood,    borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,.06)', tension:.4, pointRadius:2, borderWidth:2, fill:false },
+        { label:'Claridad', data:D.clarity, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,.06)',  tension:.4, pointRadius:2, borderWidth:2, fill:false },
+        { label:'Ansiedad', data:D.anxiety, borderColor:'#fb7185', backgroundColor:'rgba(251,113,133,.06)', tension:.4, pointRadius:2, borderWidth:1.5, fill:false, borderDash:[4,3] },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      scales: {
+        y: { min:1, max:10, ticks:{color:'rgba(255,255,255,.35)',font:{size:9}}, grid:{ color:'rgba(255,255,255,0.05)' } },
+        x: { ticks:{color:'rgba(255,255,255,.35)',font:{size:9}}, grid:{ display:false } }
+      },
+      plugins: { legend:{ position:'top', labels:{ usePointStyle:true, padding:12, color:'#9ca3af', font:{size:10} } } }
+    }
+  });
+});
+</script>
+<% } %>
+
+<% } %> <!-- fin if _sum -->
+
+<!-- FORMULARIO EDITAR PERFIL -->
+<div id="form-editar" style="display:<%= perfil && perfil.nombre ? 'none' : 'block' %>;margin-top:1.5rem">
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-header">
+    <h2 class="card-title">✏️ Editar Perfil</h2>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="toggleEditar()">Cerrar ✕</button>
+  </div>
+</div>
+<form action="/perfil" method="POST" class="checkin-form">
+
+  <div class="form-section">
+    <h2 class="form-section-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleSeccion('sec-identidad',this)">
+      <span>👤 Identidad Básica</span>
+      <span id="arrow-sec-identidad" style="font-size:.85rem;color:var(--text-muted)">▸ ver</span>
+    </h2>
+    <div id="sec-identidad" style="display:none">
+    <div class="sliders-grid">
+      <div class="form-field">
+        <label class="field-label">Nombre</label>
+        <input type="text" name="nombre" class="input" value="<%= perfil ? perfil.nombre : '' %>" placeholder="Tu nombre" />
+      </div>
+      <div class="form-field">
+        <label class="field-label">Edad</label>
+        <input type="number" name="edad" class="input" value="<%= perfil ? perfil.edad : '' %>" placeholder="Ej: 35" />
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">Género</label>
+      <div class="opciones-grid">
+        <% ['Masculino','Femenino','No binario','Prefiero no decir'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.genero === op ? 'checked' : '' %>">
+          <input type="radio" name="genero" value="<%= op %>" <%= perfil && perfil.genero === op ? 'checked' : '' %> onchange="selectOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">Situación familiar</label>
+      <div class="opciones-grid">
+        <% ['Soltero/a','En pareja','Casado/a','Separado/a','Divorciado/a','Viudo/a'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.situacion_familiar && perfil.situacion_familiar.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="situacion_familiar" value="<%= op %>" <%= perfil && perfil.situacion_familiar && perfil.situacion_familiar.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Tienes hijos?</label>
+      <div class="opciones-grid">
+        <% ['No tengo hijos','1 hijo','2 hijos','3 o más hijos'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.hijos === op ? 'checked' : '' %>">
+          <input type="radio" name="hijos" value="<%= op %>" <%= perfil && perfil.hijos === op ? 'checked' : '' %> onchange="selectOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Cómo trabajas?</label>
+      <div class="opciones-grid">
+        <% ['Empleado oficina','Empleado remoto','Emprendedor','Independiente','Estudiante','Sin trabajo actualmente','Por turnos'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.ocupacion && perfil.ocupacion.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="ocupacion" value="<%= op %>" <%= perfil && perfil.ocupacion && perfil.ocupacion.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Cuántas horas trabajas al día?</label>
+      <div class="opciones-grid">
+        <% ['Menos de 4h','4 a 6h','6 a 8h','8 a 10h','Más de 10h'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.horas_trabajo === op ? 'checked' : '' %>">
+          <input type="radio" name="horas_trabajo" value="<%= op %>" <%= perfil && perfil.horas_trabajo === op ? 'checked' : '' %> onchange="selectOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">💪 Estado Físico</h2>
+    <div class="form-field">
+      <label class="field-label">¿Cómo describes tu energía en general?</label>
+      <div class="opciones-grid">
+        <% ['Siempre agotado','Con altibajos frecuentes','Energía irregular','Generalmente bien','Con mucha energía'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.energia_general && perfil.energia_general.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="energia_general" value="<%= op %>" <%= perfil && perfil.energia_general && perfil.energia_general.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Cómo es tu sueño?</label>
+      <div class="opciones-grid">
+        <% ['Duermo muy mal','Me cuesta dormirme','Me despierto seguido','Duermo bien pero poco','Duermo bien y suficiente'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.sueno && perfil.sueno.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="sueno" value="<%= op %>" <%= perfil && perfil.sueno && perfil.sueno.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Ejercicio actualmente?</label>
+      <div class="opciones-grid">
+        <% ['No hago nada','Caminatas ocasionales','1-2 veces por semana','3-4 veces por semana','Diario'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.deporte_actual === op ? 'checked' : '' %>">
+          <input type="radio" name="deporte_actual" value="<%= op %>" <%= perfil && perfil.deporte_actual === op ? 'checked' : '' %> onchange="selectOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Consumes alguna de estas sustancias?</label>
+      <div class="opciones-grid">
+        <% ['Cafeína en exceso','Alcohol ocasional','Alcohol frecuente','Tabaco','Cannabis','Ninguna'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.consumos && perfil.consumos.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="consumos" value="<%= op %>" <%= perfil && perfil.consumos && perfil.consumos.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">🧠 Estado Emocional</h2>
+    <div class="form-field">
+      <label class="field-label">¿Cómo describes tu ansiedad en general?</label>
+      <div class="opciones-grid">
+        <% ['Sin ansiedad','Ansiedad leve','Ansiedad moderada','Ansiedad frecuente','Ansiedad severa'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.ansiedad_general === op ? 'checked' : '' %>">
+          <input type="radio" name="ansiedad_general" value="<%= op %>" <%= perfil && perfil.ansiedad_general === op ? 'checked' : '' %> onchange="selectOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Cómo es tu nivel de estrés?</label>
+      <div class="opciones-grid">
+        <% ['Muy bajo','Manejable','Moderado','Alto','Muy alto — al límite'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.estres_general === op ? 'checked' : '' %>">
+          <input type="radio" name="estres_general" value="<%= op %>" <%= perfil && perfil.estres_general === op ? 'checked' : '' %> onchange="selectOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2 class="form-section-title">🎯 Metas y Motivación</h2>
+    <div class="form-field">
+      <label class="field-label">¿Cuáles son tus objetivos más importantes?</label>
+      <div class="opciones-grid">
+        <% ['Tener más energía y salud','Ganar más dinero','Ser mejor padre/madre','Crecer profesionalmente','Reducir el estrés y ansiedad','Mejorar mis relaciones','Ser más disciplinado','Tener más tiempo libre','Sanar emocionalmente','Encontrar propósito'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.objetivos && perfil.objetivos.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="objetivos" value="<%= op %>" <%= perfil && perfil.objetivos && perfil.objetivos.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-field" style="margin-top:1rem">
+      <label class="field-label">¿Cuáles son tus principales obstáculos?</label>
+      <div class="opciones-grid">
+        <% ['Falta de energía','Falta de tiempo','Falta de disciplina','Distracciones digitales','Estrés y ansiedad','Falta de claridad','Problemas económicos','Entorno poco favorable','Problemas de salud','Falta de motivación'].forEach(function(op) { %>
+        <label class="opcion-card <%= perfil && perfil.obstaculos && perfil.obstaculos.includes(op) ? 'checked' : '' %>">
+          <input type="checkbox" name="obstaculos" value="<%= op %>" <%= perfil && perfil.obstaculos && perfil.obstaculos.includes(op) ? 'checked' : '' %> onchange="toggleOpcion(this)" /><%= op %>
+        </label>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <button type="button" class="btn btn-ghost" onclick="toggleEditar()">Cancelar</button>
+    <button type="submit" class="btn btn-primary">Guardar Perfil</button>
+  </div>
+</form>
+</div>
+
+<script>
+function toggleEditar() {
+  var f = document.getElementById('form-editar');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'block') f.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function toggleSeccion(id, header) {
+  var el = document.getElementById(id);
+  var arrow = document.getElementById('arrow-' + id);
+  var visible = el.style.display !== 'none';
+  el.style.display = visible ? 'none' : 'block';
+  arrow.textContent = visible ? '▸ ver' : '▴ ocultar';
+}
+function selectOpcion(input) {
+  document.querySelectorAll('input[name="'+input.name+'"]').forEach(function(i){ i.closest('.opcion-card').classList.remove('checked'); });
+  input.closest('.opcion-card').classList.add('checked');
+}
+function toggleOpcion(input) {
+  input.closest('.opcion-card').classList.toggle('checked', input.checked);
+}
+</script>
+
+<%- include('partials/footer') %>

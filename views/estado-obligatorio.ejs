@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse — Toma de Estado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family:'Inter',sans-serif; background:#1a1a2e; color:#fef9ef;
+      min-height:100vh; overflow-y:auto; overflow-x:hidden;
+    }
+
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0;
+      background:radial-gradient(ellipse at 50% 50%, rgba(244,132,95,.08) 0%, transparent 70%);
+      animation:breathe 4s ease-in-out infinite; pointer-events:none;
+    }
+    @keyframes breathe { 0%,100%{opacity:.4;transform:scale(1)} 50%{opacity:1;transform:scale(1.05)} }
+
+    .bl-overlay {
+      position:relative; z-index:1;
+      min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:1.5rem 1rem;
+    }
+
+    .blocker { width:100%; max-width:520px; }
+
+    /* Header */
+    .bl-header { text-align:center; margin-bottom:1.5rem; }
+    .bl-icon { font-size:2.5rem; margin-bottom:.4rem; animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
+    .bl-title { font-size:1.4rem; font-weight:800; }
+    .bl-sub { color:#9a8e7e; font-size:.85rem; margin-top:.3rem; line-height:1.5; }
+    .bl-periodo {
+      display:inline-block; margin-top:.5rem;
+      background:rgba(244,132,95,.15); color:#f4845f;
+      padding:.2rem .7rem; border-radius:20px;
+      font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    }
+
+    /* Progress dots */
+    .bl-progress { display:flex; justify-content:center; gap:.5rem; margin-bottom:1.2rem; }
+    .bl-dot { width:10px; height:10px; border-radius:50%; background:rgba(254,249,239,.08); transition:all .3s; }
+    .bl-dot.done { background:#f9c74f; }
+    .bl-dot.current { background:#f4845f; animation:pulse 1.5s infinite; width:12px; height:12px; }
+
+    /* Card */
+    .bl-card {
+      background:rgba(254,249,239,.03); border:1px solid rgba(254,249,239,.08);
+      border-radius:20px; padding:1.3rem; backdrop-filter:blur(10px);
+      margin-bottom:1rem;
+    }
+    .bl-card-title {
+      font-size:.75rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; color:#f4845f; margin-bottom:1rem;
+    }
+
+    /* ── Sliders 1-5 ── */
+    .slider-group { margin-bottom:1.1rem; }
+    .slider-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem; }
+    .slider-label { font-size:.82rem; font-weight:600; color:#d4c5b0; }
+    .slider-value {
+      font-family:monospace; font-size:.95rem; font-weight:700;
+      min-width:50px; text-align:right; transition:color .2s;
+    }
+    .slider-track { position:relative; width:100%; height:32px; display:flex; align-items:center; }
+    input[type=range] {
+      -webkit-appearance:none; appearance:none; width:100%; height:6px;
+      border-radius:3px; outline:none; cursor:pointer;
+      background:linear-gradient(to right, var(--sl-lo), var(--sl-hi));
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none; width:26px; height:26px; border-radius:50%;
+      background:#fef9ef; border:3px solid var(--sl-hi);
+      box-shadow:0 2px 8px rgba(0,0,0,.3); cursor:grab; transition:transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover { transform:scale(1.15); }
+    .slider-labels { display:flex; justify-content:space-between; font-size:.6rem; color:#6b5f52; margin-top:-.15rem; }
+
+    .sl-estado  { --sl-lo:#ef4444; --sl-hi:#22c55e; }
+    .sl-energia { --sl-lo:#94a3b8; --sl-hi:#f9c74f; }
+    .sl-estres  { --sl-lo:#22c55e; --sl-hi:#ef4444; }
+    .sl-enfoque { --sl-lo:#94a3b8; --sl-hi:#3b82f6; }
+    .sl-sueno   { --sl-lo:#6366f1; --sl-hi:#f9c74f; }
+    .sl-evaldia { --sl-lo:#ef4444; --sl-hi:#22c55e; }
+    .sl-mot     { --sl-lo:#94a3b8; --sl-hi:#f4845f; }
+    .sl-prod    { --sl-lo:#94a3b8; --sl-hi:#22c55e; }
+    .sl-clar    { --sl-lo:#94a3b8; --sl-hi:#60a5fa; }
+    .sl-alim    { --sl-lo:#ef4444; --sl-hi:#22c55e; }
+    .sl-soc     { --sl-lo:#94a3b8; --sl-hi:#a78bfa; }
+    .sl-rum     { --sl-lo:#22c55e; --sl-hi:#ef4444; }
+    .sl-con     { --sl-lo:#94a3b8; --sl-hi:#f9c74f; }
+
+    /* ── Emotion Grid ── */
+    .emo-section { margin-bottom:1.1rem; }
+    .emo-section label { display:block; font-size:.82rem; font-weight:600; color:#d4c5b0; margin-bottom:.5rem; }
+    .emo-grid {
+      display:grid; grid-template-columns:repeat(4, 1fr); gap:.4rem;
+    }
+    .emo-quadrant-label {
+      grid-column:1/-1; font-size:.6rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.08em; color:#6b5f52; padding:.3rem 0 .1rem; border-top:1px solid rgba(254,249,239,.06);
+    }
+    .emo-quadrant-label:first-child { border-top:none; }
+    .emo-chip {
+      padding:.4rem .2rem; border-radius:10px; text-align:center;
+      border:1px solid rgba(254,249,239,.1); background:rgba(254,249,239,.03);
+      cursor:pointer; transition:all .2s; font-size:.72rem; line-height:1.3;
+    }
+    .emo-chip:hover { border-color:rgba(244,132,95,.4); }
+    .emo-chip.selected { background:rgba(244,132,95,.2); border-color:#f4845f; color:#f4845f; }
+    .emo-chip .emo-emoji { font-size:1.1rem; display:block; margin-bottom:.1rem; }
+    .emo-chip input { display:none; }
+
+    /* ── Context pills ── */
+    .ctx-section { margin-bottom:.8rem; }
+    .ctx-section > label { display:block; font-size:.82rem; font-weight:600; color:#d4c5b0; margin-bottom:.5rem; }
+    .ctx-grid { display:flex; flex-wrap:wrap; gap:.4rem; }
+    .ctx-chip {
+      padding:.35rem .7rem; border-radius:20px;
+      border:1px solid rgba(254,249,239,.1); background:rgba(254,249,239,.03);
+      cursor:pointer; transition:all .2s; font-size:.78rem;
+    }
+    .ctx-chip:hover { border-color:rgba(249,199,79,.4); }
+    .ctx-chip.selected { background:rgba(249,199,79,.15); border-color:#f9c74f; color:#f9c74f; }
+    .ctx-chip input { display:none; }
+
+    /* ── Text fields ── */
+    .nota-field { margin-top:.5rem; margin-bottom:.8rem; }
+    .nota-field label { display:block; font-size:.78rem; color:#9a8e7e; margin-bottom:.3rem; font-weight:600; }
+    .nota-field textarea, .nota-field input[type=text] {
+      width:100%; padding:.5rem .7rem; border-radius:10px;
+      border:1px solid rgba(254,249,239,.1); background:rgba(254,249,239,.04);
+      color:#fef9ef; font-family:inherit; font-size:.82rem; resize:none;
+    }
+    .nota-field textarea { height:50px; }
+    .nota-field textarea:focus, .nota-field input:focus { outline:none; border-color:#f4845f; }
+    .nota-field textarea::placeholder, .nota-field input::placeholder { color:#6b5f52; }
+
+    /* ── Toggle extended ── */
+    .extend-toggle {
+      display:flex; align-items:center; justify-content:center; gap:.6rem;
+      padding:.7rem; margin-bottom:1rem; cursor:pointer;
+      background:rgba(254,249,239,.03); border:1px dashed rgba(254,249,239,.1);
+      border-radius:12px; transition:all .2s;
+    }
+    .extend-toggle:hover { border-color:rgba(244,132,95,.3); background:rgba(244,132,95,.05); }
+    .extend-toggle .toggle-text { font-size:.82rem; color:#9a8e7e; }
+    .extend-toggle .toggle-icon { font-size:1.1rem; transition:transform .3s; }
+    .extend-toggle.open .toggle-icon { transform:rotate(180deg); }
+    .extend-toggle.open .toggle-text { color:#f4845f; }
+
+    .extended-section { display:none; }
+    .extended-section.visible { display:block; animation:fadeUp .3s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── Activity physical toggle ── */
+    .af-toggle {
+      display:flex; gap:.6rem; margin-bottom:.8rem;
+    }
+    .af-option {
+      flex:1; padding:.5rem; border-radius:10px; text-align:center;
+      border:1px solid rgba(254,249,239,.1); background:rgba(254,249,239,.03);
+      cursor:pointer; transition:all .2s; font-size:.82rem;
+    }
+    .af-option:hover { border-color:rgba(244,132,95,.3); }
+    .af-option.selected { background:rgba(34,197,94,.15); border-color:#22c55e; color:#22c55e; }
+    .af-option.selected-no { background:rgba(239,68,68,.1); border-color:#ef4444; color:#ef4444; }
+    .af-option input { display:none; }
+
+    /* ── Submit ── */
+    .bl-submit {
+      width:100%; padding:.85rem; border-radius:12px;
+      border:none; font-size:1.05rem; font-weight:700; font-family:inherit;
+      cursor:pointer; transition:all .2s;
+      background:linear-gradient(135deg, #f4845f, #f9c74f); color:#1a1a2e;
+    }
+    .bl-submit:hover { transform:translateY(-2px); box-shadow:0 8px 30px rgba(244,132,95,.35); }
+    .bl-submit:active { transform:translateY(0); }
+
+    .bl-timer {
+      text-align:center; margin-top:.8rem;
+      font-size:.7rem; color:#6b5f52; font-family:monospace;
+    }
+
+    .bl-block-msg {
+      text-align:center; margin-top:.6rem; padding:.4rem;
+      background:rgba(244,132,95,.08); border-radius:8px;
+      font-size:.72rem; color:#f4845f; line-height:1.4;
+    }
+
+    .bell-ring { animation:ring 1s ease-in-out; }
+    @keyframes ring {
+      0%{transform:rotate(0)} 10%{transform:rotate(15deg)} 20%{transform:rotate(-15deg)}
+      30%{transform:rotate(10deg)} 40%{transform:rotate(-10deg)} 50%{transform:rotate(5deg)}
+      60%{transform:rotate(-5deg)} 70%{transform:rotate(2deg)} 80%{transform:rotate(-1deg)}
+      90%{transform:rotate(1deg)} 100%{transform:rotate(0)}
+    }
+
+    @media(max-width:400px) {
+      .emo-grid { grid-template-columns:repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<div class="bl-overlay">
+  <div class="blocker">
+    <div class="bl-header">
+      <div class="bl-icon bell-ring">🔔</div>
+      <div class="bl-title">¿Cómo estás?</div>
+      <div class="bl-sub">Registra tu estado antes de continuar.</div>
+      <div class="bl-periodo"><%= periodo.label %></div>
+    </div>
+
+    <div class="bl-progress">
+      <% periodos.forEach(p => { %>
+        <div class="bl-dot <%= completados.includes(p.key) ? 'done' : (p.key === periodo.key ? 'current' : '') %>"
+             title="<%= p.label %>"></div>
+      <% }) %>
+    </div>
+
+    <form action="/estado-obligatorio" method="POST" id="estadoForm">
+      <input type="hidden" name="periodo" value="<%= periodo.key %>" />
+      <input type="hidden" name="modo_extendido" value="0" id="modoExtInput" />
+
+      <!-- ═══════════ MODO CORTO (obligatorio) ═══════════ -->
+      <div class="bl-card">
+        <div class="bl-card-title">📋 Check-in rápido</div>
+
+        <!-- 1. Estado general 1-5 -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">¿Cómo te sientes?</span>
+            <span class="slider-value" id="val-estado">3 😐</span>
+          </div>
+          <div class="slider-track sl-estado">
+            <input type="range" name="estado_general" id="sl-estado" min="1" max="5" value="3" oninput="updateSlider5('estado',this.value)" />
+          </div>
+          <div class="slider-labels"><span>Muy mal</span><span>Excelente</span></div>
+        </div>
+
+        <!-- 2. Energía 1-5 -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">⚡ Energía</span>
+            <span class="slider-value" id="val-energia">3 😐</span>
+          </div>
+          <div class="slider-track sl-energia">
+            <input type="range" name="energia" id="sl-energia" min="1" max="5" value="3" oninput="updateSlider5('energia',this.value)" />
+          </div>
+          <div class="slider-labels"><span>Agotado</span><span>Lleno</span></div>
+        </div>
+
+        <!-- 3. Estrés 1-5 -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">😰 Estrés</span>
+            <span class="slider-value" id="val-estres">3 😐</span>
+          </div>
+          <div class="slider-track sl-estres">
+            <input type="range" name="estres" id="sl-estres" min="1" max="5" value="3" oninput="updateSlider5('estres',this.value)" />
+          </div>
+          <div class="slider-labels"><span>Cero estrés</span><span>Muy estresado</span></div>
+        </div>
+
+        <!-- 4. Enfoque 1-5 -->
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">🎯 Enfoque</span>
+            <span class="slider-value" id="val-enfoque">3 😐</span>
+          </div>
+          <div class="slider-track sl-enfoque">
+            <input type="range" name="enfoque" id="sl-enfoque" min="1" max="5" value="3" oninput="updateSlider5('enfoque',this.value)" />
+          </div>
+          <div class="slider-labels"><span>Disperso</span><span>Láser</span></div>
+        </div>
+
+        <!-- 5. Sueño (solo mañana) / Evaluación del día (solo noche) -->
+        <% if (periodo.key === 'manana') { %>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">😴 ¿Cómo dormiste?</span>
+            <span class="slider-value" id="val-sueno">3 😐</span>
+          </div>
+          <div class="slider-track sl-sueno">
+            <input type="range" name="sueno" id="sl-sueno" min="1" max="5" value="3" oninput="updateSlider5('sueno',this.value)" />
+          </div>
+          <div class="slider-labels"><span>Pésimo</span><span>Increíble</span></div>
+        </div>
+        <% } else if (periodo.key === 'noche') { %>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">📊 ¿Cómo estuvo el día?</span>
+            <span class="slider-value" id="val-evaldia">3 😐</span>
+          </div>
+          <div class="slider-track sl-evaldia">
+            <input type="range" name="evaluacion_dia" id="sl-evaldia" min="1" max="5" value="3" oninput="updateSlider5('evaldia',this.value)" />
+          </div>
+          <div class="slider-labels"><span>Terrible</span><span>Increíble</span></div>
+        </div>
+        <% } %>
+
+        <!-- 6. Emoción predominante (circumplex grid) -->
+        <div class="emo-section">
+          <label>¿Emoción predominante?</label>
+          <div class="emo-grid" id="emoGrid">
+            <div class="emo-quadrant-label">⬆️ Alta energía · Positivo</div>
+            <div class="emo-chip" data-val="motivado" onclick="selectEmo(this)"><span class="emo-emoji">🔥</span>Motivado<input type="radio" name="emocion" value="motivado"/></div>
+            <div class="emo-chip" data-val="feliz" onclick="selectEmo(this)"><span class="emo-emoji">😄</span>Feliz<input type="radio" name="emocion" value="feliz"/></div>
+            <div class="emo-chip" data-val="inspirado" onclick="selectEmo(this)"><span class="emo-emoji">✨</span>Inspirado<input type="radio" name="emocion" value="inspirado"/></div>
+            <div class="emo-chip" data-val="entusiasmado" onclick="selectEmo(this)"><span class="emo-emoji">🚀</span>Entusiasmado<input type="radio" name="emocion" value="entusiasmado"/></div>
+
+            <div class="emo-quadrant-label">⬆️ Alta energía · Negativo</div>
+            <div class="emo-chip" data-val="ansioso" onclick="selectEmo(this)"><span class="emo-emoji">😰</span>Ansioso<input type="radio" name="emocion" value="ansioso"/></div>
+            <div class="emo-chip" data-val="enojado" onclick="selectEmo(this)"><span class="emo-emoji">😤</span>Enojado<input type="radio" name="emocion" value="enojado"/></div>
+            <div class="emo-chip" data-val="frustrado" onclick="selectEmo(this)"><span class="emo-emoji">😣</span>Frustrado<input type="radio" name="emocion" value="frustrado"/></div>
+            <div class="emo-chip" data-val="estresado" onclick="selectEmo(this)"><span class="emo-emoji">🤯</span>Estresado<input type="radio" name="emocion" value="estresado"/></div>
+
+            <div class="emo-quadrant-label">⬇️ Baja energía · Positivo</div>
+            <div class="emo-chip" data-val="tranquilo" onclick="selectEmo(this)"><span class="emo-emoji">😌</span>Tranquilo<input type="radio" name="emocion" value="tranquilo"/></div>
+            <div class="emo-chip" data-val="relajado" onclick="selectEmo(this)"><span class="emo-emoji">🧘</span>Relajado<input type="radio" name="emocion" value="relajado"/></div>
+            <div class="emo-chip" data-val="satisfecho" onclick="selectEmo(this)"><span class="emo-emoji">😊</span>Satisfecho<input type="radio" name="emocion" value="satisfecho"/></div>
+            <div class="emo-chip" data-val="en_paz" onclick="selectEmo(this)"><span class="emo-emoji">☮️</span>En paz<input type="radio" name="emocion" value="en_paz"/></div>
+
+            <div class="emo-quadrant-label">⬇️ Baja energía · Negativo</div>
+            <div class="emo-chip" data-val="triste" onclick="selectEmo(this)"><span class="emo-emoji">😢</span>Triste<input type="radio" name="emocion" value="triste"/></div>
+            <div class="emo-chip" data-val="agotado" onclick="selectEmo(this)"><span class="emo-emoji">😩</span>Agotado<input type="radio" name="emocion" value="agotado"/></div>
+            <div class="emo-chip" data-val="aburrido" onclick="selectEmo(this)"><span class="emo-emoji">😑</span>Aburrido<input type="radio" name="emocion" value="aburrido"/></div>
+            <div class="emo-chip" data-val="apatico" onclick="selectEmo(this)"><span class="emo-emoji">😶</span>Apático<input type="radio" name="emocion" value="apatico"/></div>
+          </div>
+        </div>
+
+        <!-- 7. Contexto -->
+        <div class="ctx-section">
+          <label>¿Qué estás haciendo?</label>
+          <div class="ctx-grid" id="ctxGrid">
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="trabajo"/>💼 Trabajo</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="estudio"/>📚 Estudio</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="social"/>👥 Social</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="descanso"/>🛋️ Descanso</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="ejercicio"/>🏃 Ejercicio</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="hogar"/>🏠 Hogar</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="transporte"/>🚗 Transporte</label>
+            <label class="ctx-chip" onclick="selectCtx(this)"><input type="radio" name="contexto" value="otro"/>⚡ Otro</label>
+          </div>
+        </div>
+
+        <!-- Nota rápida -->
+        <div class="nota-field">
+          <label>Nota rápida (opcional)</label>
+          <textarea name="nota" placeholder="¿Algo que quieras anotar?"></textarea>
+        </div>
+      </div>
+
+      <!-- ═══════════ TOGGLE MODO EXTENDIDO ═══════════ -->
+      <div class="extend-toggle" id="extToggle" onclick="toggleExtended()">
+        <span class="toggle-icon">⬇️</span>
+        <span class="toggle-text">Quiero responder más preguntas (opcional, 2 min)</span>
+      </div>
+
+      <!-- ═══════════ MODO EXTENDIDO (opcional) ═══════════ -->
+      <div class="extended-section" id="extSection">
+        <div class="bl-card">
+          <div class="bl-card-title">🔍 Check-in profundo</div>
+
+          <!-- Motivación 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">🔥 Motivación</span>
+              <span class="slider-value" id="val-mot">3 😐</span>
+            </div>
+            <div class="slider-track sl-mot">
+              <input type="range" name="motivacion" id="sl-mot" min="1" max="5" value="3" oninput="updateSlider5('mot',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Cero ganas</span><span>Imparable</span></div>
+          </div>
+
+          <!-- Productividad 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">📈 Productividad percibida</span>
+              <span class="slider-value" id="val-prod">3 😐</span>
+            </div>
+            <div class="slider-track sl-prod">
+              <input type="range" name="productividad" id="sl-prod" min="1" max="5" value="3" oninput="updateSlider5('prod',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Nada productivo</span><span>Muy productivo</span></div>
+          </div>
+
+          <!-- Claridad mental 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">💎 Claridad mental</span>
+              <span class="slider-value" id="val-clar">3 😐</span>
+            </div>
+            <div class="slider-track sl-clar">
+              <input type="range" name="claridad_mental" id="sl-clar" min="1" max="5" value="3" oninput="updateSlider5('clar',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Confuso</span><span>Cristalino</span></div>
+          </div>
+
+          <!-- Actividad física -->
+          <div style="margin-bottom:.8rem;">
+            <label style="display:block;font-size:.82rem;font-weight:600;color:#d4c5b0;margin-bottom:.4rem;">🏃 ¿Hiciste actividad física?</label>
+            <div class="af-toggle">
+              <label class="af-option" id="af-si" onclick="selectAF(1)"><input type="radio" name="actividad_fisica" value="1"/>✅ Sí</label>
+              <label class="af-option" id="af-no" onclick="selectAF(0)"><input type="radio" name="actividad_fisica" value="0"/>❌ No</label>
+            </div>
+          </div>
+
+          <!-- Alimentación 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">🥗 Alimentación</span>
+              <span class="slider-value" id="val-alim">3 😐</span>
+            </div>
+            <div class="slider-track sl-alim">
+              <input type="range" name="alimentacion" id="sl-alim" min="1" max="5" value="3" oninput="updateSlider5('alim',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Pésima</span><span>Excelente</span></div>
+          </div>
+
+          <!-- Social 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">👥 Interacción social</span>
+              <span class="slider-value" id="val-soc">3 😐</span>
+            </div>
+            <div class="slider-track sl-soc">
+              <input type="range" name="social" id="sl-soc" min="1" max="5" value="3" oninput="updateSlider5('soc',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Aislado</span><span>Muy activo</span></div>
+          </div>
+
+          <!-- Rumiación 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">🌀 ¿Rumiando / preocupado?</span>
+              <span class="slider-value" id="val-rum">3 😐</span>
+            </div>
+            <div class="slider-track sl-rum">
+              <input type="range" name="rumiacion" id="sl-rum" min="1" max="5" value="3" oninput="updateSlider5('rum',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Para nada</span><span>Mucho</span></div>
+          </div>
+
+          <!-- Conexión social 1-5 -->
+          <div class="slider-group">
+            <div class="slider-header">
+              <span class="slider-label">💛 ¿Te sientes conectado con otros?</span>
+              <span class="slider-value" id="val-con">3 😐</span>
+            </div>
+            <div class="slider-track sl-con">
+              <input type="range" name="conexion_social" id="sl-con" min="1" max="5" value="3" oninput="updateSlider5('con',this.value)" />
+            </div>
+            <div class="slider-labels"><span>Desconectado</span><span>Muy conectado</span></div>
+          </div>
+
+          <!-- Text fields -->
+          <div class="nota-field">
+            <label>¿Qué te está preocupando?</label>
+            <textarea name="preocupacion" placeholder="Escribe libremente..."></textarea>
+          </div>
+          <div class="nota-field">
+            <label>¿Qué fue lo mejor de hoy?</label>
+            <input type="text" name="mejor_momento" placeholder="Un momento, logro, o algo positivo..." />
+          </div>
+          <div class="nota-field">
+            <label>¿Algo que quieras mejorar?</label>
+            <input type="text" name="meta_mejora" placeholder="Un hábito, actitud, o meta para mañana..." />
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="bl-submit" id="submitBtn">
+        Registrar Estado ✓
+      </button>
+
+      <div class="bl-block-msg">
+        No puedes usar la app hasta completar este registro. Son 30 segundos.
+      </div>
+
+      <div class="bl-timer" id="timer"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* ═══════════ Slider 1-5 with emoji ═══════════ */
+var EMOJIS5 = {
+  estado:  ['','😫','😕','😐','😊','😄'],
+  energia: ['','🪫','😴','😐','💪','⚡'],
+  estres:  ['','😎','🙂','😐','😰','🤯'],
+  enfoque: ['','🌫️','😵‍💫','😐','🎯','🔥'],
+  sueno:   ['','💀','😣','😐','😌','😴'],
+  evaldia: ['','😫','😕','😐','😊','🌟'],
+  mot:     ['','😶','😐','🙂','🔥','🚀'],
+  prod:    ['','🐌','😐','🙂','📈','⚡'],
+  clar:    ['','🌫️','😵‍💫','😐','💎','🔮'],
+  alim:    ['','🍔','😐','🙂','🥗','💚'],
+  soc:     ['','🏝️','😶','😐','👥','🎉'],
+  rum:     ['','😌','🙂','😐','😰','🌀'],
+  con:     ['','😔','😐','🙂','💛','🤗'],
+};
+
+function updateSlider5(name, val) {
+  var v = parseInt(val);
+  var el = document.getElementById('val-' + name);
+  if (!el) return;
+  el.textContent = v + ' ' + (EMOJIS5[name] ? EMOJIS5[name][v] : '');
+
+  var colorMaps = {
+    estado:  ['','#ef4444','#f59e0b','#a3a3a3','#22c55e','#10b981'],
+    energia: ['','#94a3b8','#f59e0b','#a3a3a3','#f9c74f','#f9c74f'],
+    estres:  ['','#22c55e','#a3e635','#a3a3a3','#f59e0b','#ef4444'],
+    enfoque: ['','#94a3b8','#a3a3a3','#a3a3a3','#3b82f6','#2563eb'],
+    sueno:   ['','#ef4444','#f59e0b','#a3a3a3','#22c55e','#f9c74f'],
+    evaldia: ['','#ef4444','#f59e0b','#a3a3a3','#22c55e','#10b981'],
+    mot:     ['','#94a3b8','#a3a3a3','#a3a3a3','#f4845f','#ef4444'],
+    prod:    ['','#94a3b8','#a3a3a3','#a3a3a3','#22c55e','#10b981'],
+    clar:    ['','#94a3b8','#a3a3a3','#a3a3a3','#60a5fa','#3b82f6'],
+    alim:    ['','#ef4444','#f59e0b','#a3a3a3','#22c55e','#10b981'],
+    soc:     ['','#94a3b8','#a3a3a3','#a3a3a3','#a78bfa','#8b5cf6'],
+    rum:     ['','#22c55e','#a3e635','#a3a3a3','#f59e0b','#ef4444'],
+    con:     ['','#94a3b8','#a3a3a3','#a3a3a3','#f9c74f','#f59e0b'],
+  };
+  if (colorMaps[name]) el.style.color = colorMaps[name][v];
+}
+
+// Initialize all visible sliders
+['estado','energia','estres','enfoque'].forEach(function(n) { updateSlider5(n, 3); });
+<% if (periodo.key === 'manana') { %>updateSlider5('sueno', 3);<% } %>
+<% if (periodo.key === 'noche') { %>updateSlider5('evaldia', 3);<% } %>
+
+/* ═══════════ Emotion selection ═══════════ */
+function selectEmo(chip) {
+  document.querySelectorAll('.emo-chip').forEach(function(c) { c.classList.remove('selected'); });
+  chip.classList.add('selected');
+  chip.querySelector('input').checked = true;
+}
+
+/* ═══════════ Context selection ═══════════ */
+function selectCtx(chip) {
+  document.querySelectorAll('.ctx-chip').forEach(function(c) { c.classList.remove('selected'); });
+  chip.classList.add('selected');
+  chip.querySelector('input').checked = true;
+}
+
+/* ═══════════ Activity physical ═══════════ */
+function selectAF(val) {
+  document.getElementById('af-si').className = 'af-option' + (val === 1 ? ' selected' : '');
+  document.getElementById('af-no').className = 'af-option' + (val === 0 ? ' selected-no' : '');
+  document.querySelector('input[name=actividad_fisica][value="'+val+'"]').checked = true;
+}
+
+/* ═══════════ Extended toggle ═══════════ */
+function toggleExtended() {
+  var section = document.getElementById('extSection');
+  var toggle = document.getElementById('extToggle');
+  var input = document.getElementById('modoExtInput');
+  var isOpen = section.classList.contains('visible');
+
+  if (isOpen) {
+    section.classList.remove('visible');
+    toggle.classList.remove('open');
+    input.value = '0';
+    toggle.querySelector('.toggle-text').textContent = 'Quiero responder más preguntas (opcional, 2 min)';
+  } else {
+    section.classList.add('visible');
+    toggle.classList.add('open');
+    input.value = '1';
+    toggle.querySelector('.toggle-text').textContent = 'Cerrar preguntas extendidas';
+    // Init extended sliders
+    ['mot','prod','clar','alim','soc','rum','con'].forEach(function(n) { updateSlider5(n, 3); });
+  }
+}
+
+/* ═══════════ Timer ═══════════ */
+var startTime = Date.now();
+setInterval(function() {
+  var elapsed = Math.floor((Date.now() - startTime) / 1000);
+  var min = Math.floor(elapsed / 60);
+  var sec = elapsed % 60;
+  document.getElementById('timer').textContent = 'Esperando: ' + (min > 0 ? min + 'm ' : '') + sec + 's';
+}, 1000);
+
+/* ═══════════ Notifications ═══════════ */
+if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+if ('Notification' in window && Notification.permission === 'granted') {
+  try { new Notification('Pulse — Toma de Estado', { body: 'Es hora de registrar tu estado de <%= periodo.label %>.', requireInteraction: true, tag: 'estado-obligatorio' }); } catch(e) {}
+}
+
+/* ═══════════ Sound ═══════════ */
+(function() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    function beep(freq, dur, delay) {
+      var osc = ctx.createOscillator(); var gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq; osc.type = 'sine';
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + dur);
+      osc.start(ctx.currentTime + delay); osc.stop(ctx.currentTime + delay + dur);
+    }
+    beep(880, 0.15, 0); beep(1100, 0.15, 0.18); beep(880, 0.3, 0.38);
+  } catch(e) {}
+})();
+
+if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
+
+/* ═══════════ Block navigation ═══════════ */
+window.history.pushState(null, '', window.location.href);
+window.addEventListener('popstate', function() { window.history.pushState(null, '', window.location.href); });
+document.addEventListener('keydown', function(e) {
+  if (e.altKey || e.ctrlKey || e.metaKey) { if (e.key !== 'Tab') { e.preventDefault(); e.stopPropagation(); } }
+  if (e.key === 'Escape') e.preventDefault();
+});
+
+/* ═══════════ Repeat sound every 60s ═══════════ */
+setInterval(function() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator(); var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 660; osc.type = 'sine';
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+  if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+}, 60000);
+
+/* ═══════════ Title blink ═══════════ */
+var origTitle = document.title;
+var blinkInterval = setInterval(function() {
+  document.title = document.title === origTitle ? '⚠ TOMA DE ESTADO PENDIENTE' : origTitle;
+}, 1500);
+
+/* ═══════════ Submit ═══════════ */
+document.getElementById('estadoForm').addEventListener('submit', function() {
+  clearInterval(blinkInterval);
+  document.title = 'Guardando...';
+  document.getElementById('submitBtn').textContent = 'Guardando...';
+  document.getElementById('submitBtn').disabled = true;
+});
+</script>
+</body>
+</html>

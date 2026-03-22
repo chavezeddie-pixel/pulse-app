@@ -1,0 +1,92 @@
+<%- include('partials/header') %>
+<div class="page-header">
+  <div>
+    <h1 class="page-title">app.use('/mejora', require('./routes/mejora'));Coach IA</h1>
+    <p class="page-subtitle">Análisis personalizado de tu día</p>
+  </div>
+</div>
+
+<% if (!checkin) { %>
+<div class="alert alert-warning" style="margin-bottom:1.5rem">
+  ⚠ No has registrado tu chequeo de hoy.
+  <a href="/checkin" class="btn btn-primary btn-sm" style="margin-left:1rem">Registrar ahora</a>
+</div>
+<% } %>
+
+<div class="two-col" style="align-items:start">
+  <div>
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header">
+        <h2 class="card-title">Tu Estado Hoy</h2>
+        <span class="badge"><%= today %></span>
+      </div>
+      <% if (checkin) { %>
+      <div class="grid-4" style="gap:.5rem;margin-bottom:1rem">
+        <div class="metric-card"><div class="metric-label">Energía</div><div class="metric-value" style="font-size:1.4rem"><%= checkin.energy %></div></div>
+        <div class="metric-card"><div class="metric-label">Ánimo</div><div class="metric-value" style="font-size:1.4rem"><%= checkin.mood %></div></div>
+        <div class="metric-card"><div class="metric-label">Claridad</div><div class="metric-value" style="font-size:1.4rem"><%= checkin.clarity %></div></div>
+        <div class="metric-card metric-card--warn"><div class="metric-label">Ansiedad</div><div class="metric-value" style="font-size:1.4rem"><%= checkin.anxiety %></div></div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <span class="badge <%= checkin.did_exercise ? 'badge-green' : 'badge-muted' %>"><%= checkin.did_exercise ? '✓' : '✗' %> Ejercicio</span>
+        <span class="badge <%= checkin.did_study ? 'badge-green' : 'badge-muted' %>"><%= checkin.did_study ? '✓' : '✗' %> Estudio</span>
+        <span class="badge <%= checkin.completed_main ? 'badge-green' : 'badge-muted' %>"><%= checkin.completed_main ? '✓' : '✗' %> Bloque principal</span>
+        <span class="badge badge-muted">😴 <%= checkin.sleep_hours %>h</span>
+      </div>
+      <% } else { %>
+      <p class="empty-state">Sin datos de hoy.</p>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Hábitos de Hoy</h2>
+        <span class="badge badge-accent"><%= habitStats.filter(h=>h.completadoHoy).length %>/<%= habitStats.length %></span>
+      </div>
+      <ul class="habit-list-mini">
+        <% habitStats.forEach(h => { %>
+        <li class="<%= h.completadoHoy ? 'done' : '' %>">
+          <%= h.completadoHoy ? '✓' : '○' %> <%= h.nombre %>
+          <span style="margin-left:auto;font-size:.7rem;color:var(--text-muted)"><%= h.racha %>d racha</span>
+        </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Análisis del Coach</h2>
+      </div>
+      <% if (coachMsg) { %>
+        <div class="coach-msg">
+          <% coachMsg.split('\n').forEach(line => { %>
+            <% if (line.trim()) { %>
+              <% if (line.match(/^\d\./) || line.match(/^[A-Z\s]+:/)) { %>
+                <p class="coach-section"><%= line %></p>
+              <% } else { %>
+                <p class="coach-line"><%= line %></p>
+              <% } %>
+            <% } %>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="empty-state" style="margin-bottom:1.5rem">Presiona el botón para que el Coach analice tu día.</p>
+      <% } %>
+      <form action="/coach/analizar" method="POST" style="margin-top:1rem">
+        <button type="submit" class="btn btn-primary" style="width:100%">
+          <%= coachMsg ? '🔄 Nuevo análisis' : '🤖 Analizar mi día' %>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.coach-msg { display:flex; flex-direction:column; gap:.5rem; }
+.coach-section { font-family:var(--font-mono); font-size:.75rem; text-transform:uppercase; letter-spacing:.08em; color:var(--accent); margin-top:.75rem; font-weight:700; }
+.coach-line { font-size:.9rem; color:var(--text-soft); line-height:1.7; }
+</style>
+
+<%- include('partials/footer') %>

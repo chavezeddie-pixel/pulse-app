@@ -1,0 +1,506 @@
+<%- include('partials/header') %>
+
+<style>
+/* ── LAYOUT ─────────────────────────────────────────── */
+.notas-wrap { display:grid; grid-template-columns:240px 1fr; gap:1.5rem; align-items:start; }
+@media(max-width:860px){ .notas-wrap{ grid-template-columns:1fr; } }
+
+/* ── SIDEBAR ─────────────────────────────────────────── */
+.notas-sidebar { display:flex; flex-direction:column; gap:.85rem; position:sticky; top:1.5rem; }
+.side-box {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:.9rem 1rem;
+}
+.side-box-title { font-size:.65rem; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--text-muted); margin-bottom:.7rem; }
+
+/* Search */
+.nota-search {
+  display:flex; align-items:center; gap:.45rem;
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:.45rem .7rem;
+  transition: border-color .15s;
+}
+.nota-search:focus-within { border-color:var(--accent); }
+.nota-search input {
+  background:none; border:none; outline:none; color:var(--text);
+  font-size:.82rem; flex:1; font-family:inherit;
+}
+.nota-search input::placeholder { color:var(--text-muted); }
+
+/* Filtros */
+.filtro-btn {
+  display:block; width:100%; text-align:left;
+  background:none; border:none; cursor:pointer;
+  font-family:inherit; font-size:.8rem; color:var(--text-soft);
+  padding:.3rem .5rem; border-radius:var(--radius);
+  transition:background .12s, color .12s;
+}
+.filtro-btn:hover { background:var(--surface-2); }
+.filtro-btn.active { background:var(--accent-dim); color:var(--accent); font-weight:600; }
+.filtro-count { float:right; font-family:var(--font-mono); font-size:.68rem; color:var(--text-muted); }
+
+/* Tags cloud */
+.tag-chip {
+  display:inline-flex; align-items:center; gap:.2rem;
+  font-size:.65rem; font-weight:600;
+  padding:.2rem .5rem; border-radius:99px;
+  border:1px solid var(--border); color:var(--text-muted);
+  cursor:pointer; transition:all .12s; margin:.15rem .1rem;
+  background:var(--surface-2);
+}
+.tag-chip:hover, .tag-chip.active {
+  border-color:var(--accent); color:var(--accent);
+  background:var(--accent-dim);
+}
+.tag-chip-n { font-size:.58rem; opacity:.7; }
+
+/* Stats */
+.stat-row { display:flex; justify-content:space-between; align-items:center; padding:.35rem 0; border-bottom:1px solid var(--border); font-size:.8rem; }
+.stat-row:last-child { border-bottom:none; }
+.stat-row-val { font-family:var(--font-mono); font-weight:700; color:var(--accent); }
+
+/* Activity dots */
+.activ-grid { display:grid; grid-template-columns:repeat(10,1fr); gap:3px; margin-top:.5rem; }
+.activ-dot { aspect-ratio:1; border-radius:2px; background:var(--surface-3); }
+.activ-dot.a1 { background:rgba(99,102,241,.35); }
+.activ-dot.a2 { background:rgba(99,102,241,.6); }
+.activ-dot.a3 { background:var(--accent); }
+
+/* ── MAIN ────────────────────────────────────────────── */
+.notas-main-hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:.9rem; gap:.65rem; flex-wrap:wrap;
+}
+.notas-count { font-size:.78rem; color:var(--text-muted); }
+
+/* Grid */
+.notas-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:.85rem; }
+
+/* Nota card */
+.nota-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:0;
+  display:flex; flex-direction:column;
+  overflow:hidden; transition:border-color .15s, box-shadow .15s;
+  cursor:pointer;
+}
+.nota-card:hover { border-color:rgba(255,255,255,.15); box-shadow:0 4px 16px rgba(0,0,0,.15); }
+.nota-card-accent { height:3px; width:100%; }
+.nota-card-body { padding:.9rem 1rem; flex:1; }
+.nota-card-foot { padding:.5rem 1rem .65rem; border-top:1px solid var(--border); display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+
+.nota-fecha { font-family:var(--font-mono); font-size:.62rem; color:var(--text-muted); margin-bottom:.25rem; }
+.nota-hace  { font-size:.62rem; color:var(--text-muted); margin-left:auto; }
+.nota-titulo { font-size:.9rem; font-weight:700; line-height:1.35; margin-bottom:.3rem; color:var(--text); }
+.nota-preview {
+  font-size:.8rem; color:var(--text-soft); line-height:1.65;
+  display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.nota-words { font-size:.62rem; color:var(--text-muted); font-family:var(--font-mono); }
+
+.ntag {
+  display:inline-flex; font-size:.6rem; font-weight:600;
+  padding:.12rem .4rem; border-radius:99px;
+  background:var(--accent-dim); color:var(--accent);
+  border:1px solid rgba(99,102,241,.25);
+}
+
+/* Delete btn */
+.nota-del {
+  background:none; border:none; cursor:pointer;
+  color:var(--text-muted); font-size:.85rem; padding:.1rem .3rem;
+  border-radius:4px; transition:all .12s; margin-left:auto;
+}
+.nota-del:hover { background:var(--red-dim); color:var(--red); }
+
+/* Empty */
+.notas-empty {
+  grid-column:1/-1;
+  text-align:center; padding:3rem 2rem;
+  background:var(--surface); border:1px dashed var(--border);
+  border-radius:var(--radius-lg); color:var(--text-muted);
+}
+
+/* ── MODAL EDITOR ────────────────────────────────────── */
+.nota-editor {
+  width:100%; min-height:180px; resize:vertical;
+  background:var(--surface-2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:.75rem;
+  color:var(--text); font-family:inherit; font-size:.88rem;
+  line-height:1.75; outline:none; transition:border-color .15s;
+}
+.nota-editor:focus { border-color:var(--accent); }
+.editor-meta { display:flex; justify-content:space-between; align-items:center; font-size:.7rem; color:var(--text-muted); margin-top:.3rem; }
+.editor-hint { font-size:.7rem; color:var(--text-muted); }
+</style>
+
+<!-- HEADER -->
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Cuaderno</h1>
+    <p class="page-subtitle"><%= locals.totalNotas || 0 %> nota<%= (locals.totalNotas||0)!==1?'s':'' %> · <%= locals.totalPalabras||0 %> palabras</p>
+  </div>
+  <button class="btn btn-primary" onclick="toggleModal('modal-nueva-nota')">+ Nueva nota</button>
+</div>
+
+<div class="notas-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="notas-sidebar">
+
+    <!-- Búsqueda -->
+    <div class="side-box">
+      <div class="nota-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" style="color:var(--text-muted);flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-inp" placeholder="Buscar..." oninput="filtrarNotas()" autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="side-box">
+      <div class="side-box-title">Filtrar</div>
+      <% var counts = { todos: locals.notas?notas.length:0, hoy:0, semana:0, mes:0 };
+         if(locals.notas){ notas.forEach(function(n){
+           if(n.fecha===today) counts.hoy++;
+           var semS = new Date(today); semS.setDate(semS.getDate()-7);
+           if(n.fecha >= semS.toISOString().split('T')[0]) counts.semana++;
+           var mesS = new Date(today); mesS.setDate(mesS.getDate()-30);
+           if(n.fecha >= mesS.toISOString().split('T')[0]) counts.mes++;
+         }); }
+      %>
+      <button class="filtro-btn active" onclick="setFiltro(this,'todos')">📄 Todas <span class="filtro-count"><%= counts.todos %></span></button>
+      <button class="filtro-btn" onclick="setFiltro(this,'hoy')">📅 Hoy <span class="filtro-count"><%= counts.hoy %></span></button>
+      <button class="filtro-btn" onclick="setFiltro(this,'semana')">📆 Esta semana <span class="filtro-count"><%= counts.semana %></span></button>
+      <button class="filtro-btn" onclick="setFiltro(this,'mes')">🗓 Este mes <span class="filtro-count"><%= counts.mes %></span></button>
+    </div>
+
+    <!-- Tags -->
+    <% if (locals.allTags && allTags.length > 0) { %>
+    <div class="side-box">
+      <div class="side-box-title">Tags</div>
+      <div>
+        <span class="tag-chip active" onclick="setTag(this,null)">todo</span>
+        <% allTags.slice(0,15).forEach(function(t){ %>
+        <span class="tag-chip" onclick="setTag(this,'<%= t.tag %>')">
+          <%= t.tag %> <span class="tag-chip-n"><%= t.count %></span>
+        </span>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Stats -->
+    <div class="side-box">
+      <div class="side-box-title">Estadísticas</div>
+      <div class="stat-row">
+        <span>Total notas</span>
+        <span class="stat-row-val"><%= locals.totalNotas||0 %></span>
+      </div>
+      <div class="stat-row">
+        <span>Este mes</span>
+        <span class="stat-row-val"><%= locals.notasMes||0 %></span>
+      </div>
+      <div class="stat-row">
+        <span>Racha escritura</span>
+        <span class="stat-row-val"><%= locals.racha||0 %>d 🔥</span>
+      </div>
+      <div class="stat-row">
+        <span>Total palabras</span>
+        <span class="stat-row-val"><%= (locals.totalPalabras||0).toLocaleString() %></span>
+      </div>
+    </div>
+
+    <!-- Actividad 30 días -->
+    <% if (locals.activ30 && activ30.some(function(a){return a.count>0;})) { %>
+    <div class="side-box">
+      <div class="side-box-title">Actividad 30 días</div>
+      <div class="activ-grid">
+        <% activ30.forEach(function(a){ %>
+        <div class="activ-dot <%= a.count>=3?'a3':a.count>=2?'a2':a.count>=1?'a1':'' %>"
+          title="<%= a.fecha %>: <%= a.count %> nota<%= a.count!==1?'s':'' %>"></div>
+        <% }); %>
+      </div>
+    </div>
+    <% } %>
+
+  </div>
+
+  <!-- MAIN -->
+  <div>
+    <div class="notas-main-hdr">
+      <span class="notas-count" id="notas-count">
+        Mostrando <span id="count-vis"><%= locals.notas?notas.length:0 %></span> notas
+      </span>
+    </div>
+
+    <% if (!locals.notas || notas.length === 0) { %>
+    <div class="notas-empty">
+      <div style="font-size:2rem;margin-bottom:.75rem">📓</div>
+      <p style="font-size:.9rem;margin-bottom:1rem">No hay notas aún. Escribe tu primera reflexión.</p>
+      <button class="btn btn-primary" onclick="toggleModal('modal-nueva-nota')">Escribir ahora →</button>
+    </div>
+    <% } else { %>
+
+    <div class="notas-grid" id="notas-grid">
+      <% var tagColors = ['#6366f1','#f59e0b','#22c55e','#ef4444','#8b5cf6','#06b6d4','#f97316'];
+         notas.forEach(function(n, ni) {
+           var accentColor = n.tags && n.tags.length > 0
+             ? tagColors[Math.abs(n.tags[0].charCodeAt(1)||0) % tagColors.length]
+             : 'var(--border)';
+           var hace = Math.round((new Date(today) - new Date(n.fecha)) / 86400000);
+           var haceStr = hace === 0 ? 'hoy' : hace === 1 ? 'ayer' : hace + 'd atrás';
+           var contenidoClean = n.contenido.replace(/#[\w\u00C0-\u024F]+/g, '').trim();
+      %>
+      <div class="nota-card"
+        id="nota-<%= n.id %>"
+        data-fecha="<%= n.fecha %>"
+        data-titulo="<%= (n.titulo||'').toLowerCase() %>"
+        data-contenido="<%= n.contenido.toLowerCase().slice(0,300) %>"
+        data-tags="<%= (n.tags||[]).join(' ') %>"
+        onclick="abrirNota(<%= n.id %>)">
+
+        <div class="nota-card-accent" style="background:<%= accentColor %>"></div>
+
+        <div class="nota-card-body">
+          <div class="nota-fecha">
+            <%= n.fecha %>
+            <span class="nota-hace"><%= haceStr %></span>
+          </div>
+          <% if (n.titulo) { %>
+          <div class="nota-titulo"><%= n.titulo.replace(/#[\w\u00C0-\u024F]+/g,'').trim() %></div>
+          <% } %>
+          <div class="nota-preview"><%= contenidoClean %></div>
+        </div>
+
+        <div class="nota-card-foot">
+          <% (n.tags||[]).slice(0,3).forEach(function(t){ %>
+          <span class="ntag"><%= t %></span>
+          <% }); %>
+          <span class="nota-words"><%= n.words %>p</span>
+          <button class="nota-del" onclick="eliminarNota(event,<%= n.id %>)" title="Eliminar">✕</button>
+        </div>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+
+  </div>
+</div>
+
+<!-- MODAL NUEVA NOTA -->
+<div class="modal-overlay" id="modal-nueva-nota" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal" style="max-width:580px;width:95vw">
+    <div class="modal-header">
+      <h3>Nueva Nota</h3>
+      <button onclick="toggleModal('modal-nueva-nota')" class="modal-close">✕</button>
+    </div>
+    <div class="modal-form">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.75rem">
+        <div class="form-field" style="margin:0">
+          <label class="field-label">Fecha</label>
+          <input type="date" id="modal-fecha" class="input" value="<%= today %>" />
+        </div>
+        <div class="form-field" style="margin:0">
+          <label class="field-label">Título <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+          <input type="text" id="modal-titulo" class="input" placeholder="Ej: Reflexión del día..." />
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="field-label">
+          Nota
+          <span style="font-weight:400;color:var(--text-muted)"> — usa #tags para categorizar</span>
+        </label>
+        <textarea
+          id="modal-contenido"
+          class="nota-editor"
+          placeholder="Escribe libremente. Usa #tags para organizar. Nadie más lo verá..."
+          oninput="updateEditorMeta()"
+          rows="8"
+        ></textarea>
+        <div class="editor-meta">
+          <span id="editor-tags" style="color:var(--accent)"></span>
+          <span id="editor-words">0 palabras</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="toggleModal('modal-nueva-nota')">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="btn-guardar-nota" onclick="guardarNota()">Guardar nota</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER NOTA -->
+<div class="modal-overlay" id="modal-ver-nota" onclick="closeOnOverlay(event,this.id)">
+  <div class="modal" style="max-width:600px;width:95vw">
+    <div class="modal-header">
+      <div>
+        <div id="vnota-titulo" style="font-size:1rem;font-weight:700"></div>
+        <div id="vnota-meta" style="font-size:.7rem;color:var(--text-muted);margin-top:.15rem"></div>
+      </div>
+      <button onclick="toggleModal('modal-ver-nota')" class="modal-close">✕</button>
+    </div>
+    <div style="padding:1rem 1.5rem 1.5rem">
+      <div id="vnota-body" style="font-size:.88rem;color:var(--text-soft);line-height:1.8;white-space:pre-wrap;max-height:60vh;overflow-y:auto"></div>
+      <div id="vnota-tags" style="margin-top:1rem;display:flex;gap:.3rem;flex-wrap:wrap"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+var TODAY_NOTAS = '<%= today %>';
+var filtroActual = 'todos';
+var tagActual    = null;
+
+// ── FILTROS ──────────────────────────────────────────────
+function setFiltro(el, tipo) {
+  document.querySelectorAll('.filtro-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  filtroActual = tipo;
+  filtrarNotas();
+}
+
+function setTag(el, tag) {
+  document.querySelectorAll('.tag-chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  tagActual = tag;
+  filtrarNotas();
+}
+
+function filtrarNotas() {
+  var query = (document.getElementById('search-inp').value || '').toLowerCase().trim();
+  var hoy   = TODAY_NOTAS;
+  var semS  = new Date(hoy); semS.setDate(semS.getDate()-7);
+  var mesS  = new Date(hoy); mesS.setDate(mesS.getDate()-30);
+  var semStr = semS.toISOString().split('T')[0];
+  var mesStr = mesS.toISOString().split('T')[0];
+
+  var cards = document.querySelectorAll('#notas-grid .nota-card');
+  var vis = 0;
+  cards.forEach(function(card) {
+    var fecha    = card.dataset.fecha || '';
+    var titulo   = card.dataset.titulo || '';
+    var contenido= card.dataset.contenido || '';
+    var tags     = card.dataset.tags || '';
+
+    var okSearch = !query || titulo.includes(query) || contenido.includes(query);
+    var okFiltro = true;
+    if (filtroActual === 'hoy')   okFiltro = fecha === hoy;
+    if (filtroActual === 'semana') okFiltro = fecha >= semStr;
+    if (filtroActual === 'mes')    okFiltro = fecha >= mesStr;
+    var okTag = !tagActual || tags.includes(tagActual);
+
+    var show = okSearch && okFiltro && okTag;
+    card.style.display = show ? '' : 'none';
+    if (show) vis++;
+  });
+
+  var el = document.getElementById('count-vis');
+  if (el) el.textContent = vis;
+}
+
+// ── EDITOR META ──────────────────────────────────────────
+function updateEditorMeta() {
+  var txt   = document.getElementById('modal-contenido').value;
+  var words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+  var tags  = (txt.match(/#[\w\u00C0-\u024F]+/g) || []);
+  document.getElementById('editor-words').textContent = words + ' palabras';
+  document.getElementById('editor-tags').textContent  = tags.length ? tags.join(' ') : '';
+}
+
+// ── GUARDAR (AJAX) ───────────────────────────────────────
+function guardarNota() {
+  var contenido = document.getElementById('modal-contenido').value.trim();
+  var titulo    = document.getElementById('modal-titulo').value.trim();
+  var fecha     = document.getElementById('modal-fecha').value;
+  if (!contenido) { alert('Escribe algo primero'); return; }
+
+  var btn = document.getElementById('btn-guardar-nota');
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando...';
+
+  progressStart();
+  fetch('/notas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    body: JSON.stringify({ fecha: fecha || TODAY_NOTAS, titulo: titulo, contenido: contenido })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(){
+    progressDone();
+    btn.disabled = false;
+    btn.textContent = '✓ Guardado';
+    showToast('Nota guardada', 'success');
+    setTimeout(function(){ location.reload(); }, 600);
+  })
+  .catch(function(){
+    progressDone();
+    btn.disabled = false;
+    btn.textContent = 'Guardar nota';
+  });
+}
+
+// ── VER NOTA ─────────────────────────────────────────────
+function abrirNota(id) {
+  var card = document.getElementById('nota-' + id);
+  if (!card) return;
+  var titulo    = card.querySelector('.nota-titulo');
+  var preview   = card.querySelector('.nota-preview');
+  var fecha     = card.dataset.fecha;
+  var tagsEl    = card.querySelectorAll('.ntag');
+
+  document.getElementById('vnota-titulo').textContent = titulo ? titulo.textContent : '(sin título)';
+  document.getElementById('vnota-meta').textContent   = fecha;
+
+  // Full content from data attr (limited), so show preview content
+  var bodyEl = document.getElementById('vnota-body');
+  bodyEl.textContent = preview ? preview.textContent : '';
+
+  var tagsWrap = document.getElementById('vnota-tags');
+  tagsWrap.innerHTML = '';
+  tagsEl.forEach(function(t){
+    var s = document.createElement('span');
+    s.className = 'ntag';
+    s.textContent = t.textContent;
+    tagsWrap.appendChild(s);
+  });
+
+  toggleModal('modal-ver-nota');
+}
+
+// ── ELIMINAR (AJAX) ──────────────────────────────────────
+function eliminarNota(e, id) {
+  e.stopPropagation();
+  if (!confirm('¿Eliminar nota?')) return;
+  progressStart();
+  fetch('/notas/' + id, {
+    method: 'DELETE',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(){
+    progressDone();
+    showToast('Nota eliminada', 'info');
+    var card = document.getElementById('nota-' + id);
+    if (card) {
+      card.style.opacity = '0';
+      card.style.transform = 'scale(.97)';
+      card.style.transition = 'all .25s';
+      setTimeout(function(){ card.remove(); filtrarNotas(); }, 250);
+    }
+  });
+}
+
+// ── ENTER TO SAVE ────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    ['modal-nueva-nota','modal-ver-nota'].forEach(function(id){
+      var m = document.getElementById(id);
+      if (m && m.style.display !== 'none') toggleModal(id);
+    });
+  }
+});
+</script>
+
+<%- include('partials/footer') %>

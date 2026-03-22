@@ -1,0 +1,239 @@
+<%- include('partials/header') %>
+
+<style>
+.ap-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; }
+.ap-header h1 { font-family:var(--font-mono); font-size:1.4rem; margin:0; }
+.ap-header .badge { background:rgba(245,158,11,.15); color:#f59e0b; font-size:.7rem; font-weight:700; padding:.2rem .6rem; border-radius:20px; }
+
+.ap-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:.75rem; margin-bottom:2rem; }
+.ap-stat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1rem; text-align:center; }
+.ap-stat .num { font-family:var(--font-mono); font-size:1.8rem; font-weight:700; color:var(--accent); }
+.ap-stat .lbl { font-size:.72rem; color:var(--text-muted); margin-top:.2rem; text-transform:uppercase; letter-spacing:.04em; }
+
+.ap-section { margin-bottom:2rem; }
+.ap-section h2 { font-size:1rem; font-family:var(--font-mono); margin:0 0 1rem; color:var(--text-soft); display:flex; align-items:center; gap:.5rem; }
+.ap-section h2 .count { background:var(--surface-2); padding:.1rem .5rem; border-radius:10px; font-size:.75rem; }
+
+/* User cards */
+.user-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1rem; }
+.user-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:1.2rem; transition:border-color .2s; }
+.user-card:hover { border-color:var(--accent); }
+.user-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:.8rem; }
+.user-name { font-weight:700; font-size:1rem; }
+.user-badge { font-size:.65rem; padding:.15rem .45rem; border-radius:8px; font-weight:600; }
+.user-badge.active { background:rgba(52,211,153,.15); color:#34d399; }
+.user-badge.onboarding { background:rgba(251,191,36,.15); color:#fbbf24; }
+.user-meta { font-size:.75rem; color:var(--text-muted); margin-bottom:.8rem; line-height:1.5; }
+.user-meta span { display:inline-block; margin-right:.8rem; }
+
+.user-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.4rem; }
+.user-stat { text-align:center; background:var(--surface-2); border-radius:8px; padding:.4rem; }
+.user-stat .n { font-family:var(--font-mono); font-weight:700; font-size:.95rem; color:var(--text); }
+.user-stat .l { font-size:.6rem; color:var(--text-muted); text-transform:uppercase; }
+
+.user-checkin { margin-top:.7rem; padding:.6rem; background:var(--surface-2); border-radius:8px; font-size:.78rem; }
+.user-checkin .label { color:var(--text-muted); font-size:.65rem; text-transform:uppercase; margin-bottom:.3rem; font-weight:600; }
+.checkin-bars { display:flex; gap:.5rem; flex-wrap:wrap; }
+.checkin-bar { flex:1; min-width:50px; }
+.checkin-bar .bar-label { font-size:.6rem; color:var(--text-muted); }
+.checkin-bar .bar-val { font-family:var(--font-mono); font-weight:700; font-size:.85rem; }
+
+.user-actions { margin-top:.7rem; display:flex; gap:.5rem; }
+.btn-sm { padding:.3rem .7rem; border-radius:6px; border:none; font-size:.72rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s; }
+.btn-danger { background:rgba(248,113,113,.12); color:#f87171; }
+.btn-danger:hover { background:rgba(248,113,113,.25); }
+
+/* Disk files table */
+.disk-table { width:100%; border-collapse:collapse; font-size:.8rem; }
+.disk-table th { text-align:left; padding:.5rem .7rem; color:var(--text-muted); font-weight:600; font-size:.7rem; text-transform:uppercase; border-bottom:1px solid var(--border); }
+.disk-table td { padding:.5rem .7rem; border-bottom:1px solid var(--border); }
+.disk-table .inactive { opacity:.5; }
+
+.purge-btn { background:rgba(248,113,113,.12); color:#f87171; border:1px solid rgba(248,113,113,.2); padding:.5rem 1.2rem; border-radius:8px; font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s; }
+.purge-btn:hover { background:rgba(248,113,113,.25); }
+
+.empty-state { text-align:center; padding:3rem 1rem; color:var(--text-muted); }
+.empty-state .icon { font-size:2.5rem; margin-bottom:.5rem; }
+.empty-state .msg { font-size:.9rem; }
+
+.back-link { display:inline-flex; align-items:center; gap:.3rem; color:var(--text-muted); text-decoration:none; font-size:.8rem; margin-bottom:1rem; transition:color .2s; }
+.back-link:hover { color:var(--text); }
+</style>
+
+<a href="/" class="back-link">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+  Volver al Dashboard
+</a>
+
+<div class="ap-header">
+  <div>
+    <h1>Panel de Administrador</h1>
+    <p style="color:var(--text-muted);font-size:.82rem;margin:.3rem 0 0">Monitorea los usuarios demo y su actividad</p>
+  </div>
+  <span class="badge"><%= totalDemos %> demo<%= totalDemos !== 1 ? 's' : '' %> activo<%= totalDemos !== 1 ? 's' : '' %></span>
+</div>
+
+<!-- Quick stats -->
+<div class="ap-stats">
+  <div class="ap-stat">
+    <div class="num"><%= totalSessions %></div>
+    <div class="lbl">Sesiones</div>
+  </div>
+  <div class="ap-stat">
+    <div class="num"><%= totalDemos %></div>
+    <div class="lbl">Demo Users</div>
+  </div>
+  <div class="ap-stat">
+    <div class="num"><%= demoUsers.filter(u => u.onboardingDone).length %></div>
+    <div class="lbl">Onboarding OK</div>
+  </div>
+  <div class="ap-stat">
+    <div class="num"><%= diskDemos.length %></div>
+    <div class="lbl">DBs en disco</div>
+  </div>
+</div>
+
+<!-- Active demo users -->
+<div class="ap-section">
+  <h2>
+    Usuarios Demo Activos
+    <span class="count"><%= demoUsers.length %></span>
+  </h2>
+
+  <% if (demoUsers.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">&#128100;</div>
+      <div class="msg">No hay usuarios demo activos.<br/>Comparte el link <strong>/demo</strong> para que la gente pruebe la app.</div>
+    </div>
+  <% } else { %>
+    <div class="user-grid">
+      <% demoUsers.forEach(u => { %>
+        <div class="user-card">
+          <div class="user-top">
+            <span class="user-name"><%= u.nombre %></span>
+            <% if (u.onboardingDone) { %>
+              <span class="user-badge active">Activo</span>
+            <% } else { %>
+              <span class="user-badge onboarding">Onboarding</span>
+            <% } %>
+          </div>
+
+          <div class="user-meta">
+            <span>ID: <%= u.demoId %></span>
+            <span>Hace <%= u.age %></span>
+            <% if (u.perfil) { %>
+              <% if (u.perfil.edad) { %><span><%= u.perfil.edad %> a.</span><% } %>
+              <% if (u.perfil.ocupacion) { %><span><%= u.perfil.ocupacion %></span><% } %>
+            <% } %>
+          </div>
+
+          <div class="user-stats">
+            <div class="user-stat">
+              <div class="n"><%= u.stats.checkins %></div>
+              <div class="l">Check-ins</div>
+            </div>
+            <div class="user-stat">
+              <div class="n"><%= u.stats.habits %></div>
+              <div class="l">Habitos</div>
+            </div>
+            <div class="user-stat">
+              <div class="n"><%= u.stats.rutinaBloques %></div>
+              <div class="l">Rutina</div>
+            </div>
+            <div class="user-stat">
+              <div class="n"><%= u.stats.notas %></div>
+              <div class="l">Notas</div>
+            </div>
+            <div class="user-stat">
+              <div class="n"><%= u.stats.reflexiones %></div>
+              <div class="l">Reflexiones</div>
+            </div>
+            <div class="user-stat">
+              <div class="n"><%= u.stats.objetivos %></div>
+              <div class="l">Objetivos</div>
+            </div>
+          </div>
+
+          <% if (u.lastCheckin) { %>
+            <div class="user-checkin">
+              <div class="label">Ultimo check-in (<%= u.lastCheckin.date %>)</div>
+              <div class="checkin-bars">
+                <div class="checkin-bar">
+                  <div class="bar-label">Energia</div>
+                  <div class="bar-val"><%= u.lastCheckin.energy %>/10</div>
+                </div>
+                <div class="checkin-bar">
+                  <div class="bar-label">Animo</div>
+                  <div class="bar-val"><%= u.lastCheckin.mood %>/10</div>
+                </div>
+                <div class="checkin-bar">
+                  <div class="bar-label">Claridad</div>
+                  <div class="bar-val"><%= u.lastCheckin.clarity %>/10</div>
+                </div>
+                <div class="checkin-bar">
+                  <div class="bar-label">Ansiedad</div>
+                  <div class="bar-val"><%= u.lastCheckin.anxiety %>/10</div>
+                </div>
+              </div>
+            </div>
+          <% } %>
+
+          <div class="user-actions">
+            <form action="/admin/panel/delete-demo" method="POST" style="margin:0" onsubmit="return confirm('Eliminar este usuario demo?')">
+              <input type="hidden" name="demoId" value="<%= u.demoId %>" />
+              <button type="submit" class="btn-sm btn-danger">Eliminar</button>
+            </form>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<!-- DB files on disk -->
+<div class="ap-section">
+  <h2>
+    Archivos Demo en Disco
+    <span class="count"><%= diskDemos.length %></span>
+  </h2>
+
+  <% if (diskDemos.length > 0) { %>
+    <table class="disk-table">
+      <thead>
+        <tr>
+          <th>Archivo</th>
+          <th>ID</th>
+          <th>Tamano</th>
+          <th>Modificado</th>
+          <th>Sesion</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% diskDemos.forEach(d => { %>
+          <tr class="<%= d.hasActiveSession ? '' : 'inactive' %>">
+            <td><%= d.file %></td>
+            <td><%= d.demoId %></td>
+            <td><%= d.size %></td>
+            <td><%= d.modified %></td>
+            <td><%= d.hasActiveSession ? 'Activa' : 'Expirada' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1rem;text-align:right;">
+      <form action="/admin/panel/purge-all" method="POST" style="display:inline" onsubmit="return confirm('Eliminar TODOS los datos demo? Esta accion no se puede deshacer.')">
+        <button type="submit" class="purge-btn">Eliminar todos los demos</button>
+      </form>
+    </div>
+  <% } else { %>
+    <p style="color:var(--text-muted);font-size:.82rem;">No hay archivos demo en disco.</p>
+  <% } %>
+</div>
+
+<script>
+  // Auto-refresh every 30s
+  setTimeout(() => window.location.reload(), 30000);
+</script>
+
+<%- include('partials/footer') %>
