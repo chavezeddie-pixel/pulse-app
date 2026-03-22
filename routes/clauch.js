@@ -159,14 +159,14 @@ function getNextQuestion(central, lastQ) {
     {
       id: 'areas_mejorar',
       condition: () => falta.includes('areas_mejorar'),
-      q: () => '¿Qué parte de tu vida sientes que podrías mejorar? Salud, productividad, relaciones, sueño... lo primero que se te venga.',
+      q: () => '¿Qué parte de tu vida sientes que podrías mejorar? 💪 Salud · 📈 Productividad · 😌 Bienestar mental · 💤 Sueño · 👥 Relaciones · 💰 Finanzas — lo primero que se te venga.',
     },
 
     // ── FASE 3: Hábitos (loop — sigue preguntando) ──
     {
       id: 'habito_1',
       condition: () => central.habits.length === 0,
-      q: () => 'Ahora vamos con algo importante. ¿Hay algo que te gustaría hacer todos los días? Algo que sientes que si lo hicieras, tu vida mejoraría. Puede ser súper simple: caminar, leer, tomar agua...',
+      q: () => 'Ahora vamos con algo importante. ¿Cuál de estas te llama? 💪 Ejercicio · 📚 Leer · 🧘 Meditar · 💤 Dormir temprano · 💧 Tomar agua · O dime otra idea que tengas.',
     },
     {
       id: 'habito_2',
@@ -188,7 +188,7 @@ function getNextQuestion(central, lastQ) {
     {
       id: 'malos_habitos',
       condition: () => central.malos.length === 0,
-      q: () => 'Ahora una pregunta honesta... ¿hay algo que haces seguido y sabes que no te ayuda? Redes sociales, trasnochar, comer mal... Todos tenemos algo, no hay juicio aquí 😅',
+      q: () => 'Ahora una pregunta honesta... ¿hay algo que haces seguido y sabes que no te ayuda? 📱 Redes sociales · 🍔 Comer chatarra · 🌙 Trasnochar · 🚬 Fumar · O cuéntame tú. Todos tenemos algo, no hay juicio aquí 😅',
     },
 
     // ── FASE 5: Objetivo ──
@@ -213,8 +213,22 @@ function getNextQuestion(central, lastQ) {
     },
   ];
 
+  // Re-check hasEstadoHoy from fresh data each time
+  const freshEstadoCheck = () => {
+    try {
+      const freshEstados = db.getEstadoHistorial(1);
+      return freshEstados.some(e => e.fecha === central.today);
+    } catch(e) { return hasEstadoHoy; }
+  };
+
   for (const step of flow) {
-    if (step.id === lastQ) continue;
+    // Skip the last asked question AND also skip if data already exists (condition is false)
+    if (step.id === lastQ) {
+      // For estado, re-check fresh data in case it was just saved
+      if (step.id === 'estado_como_estas' && freshEstadoCheck()) continue;
+      // For other questions, skip only the immediate lastQ to avoid re-asking
+      continue;
+    }
     if (step.condition()) {
       return { id: step.id, text: step.q() };
     }
@@ -300,6 +314,16 @@ function processAnswer(text, questionId, central) {
     }
 
     case 'areas_mejorar': {
+      // "no sé" / "nose" / "ni idea" → don't save
+      if (/^(no s[eé]|nose|ni idea|no tengo idea|nada|paso|skip|ns)$/i.test(tl)) {
+        return { messages: ['Tranqui, cuando lo tengas claro me dices.'], saved };
+      }
+
+      // "ya te dije" / "ya lo dijiste" → don't save
+      if (/(ya te dije|ya lo dije|ya respond[ií]|ya lo dijiste|ya me preguntaste|ya te cont[eé])/i.test(tl)) {
+        return { messages: ['Perdón, a veces me repito 😅 Sigamos.'], saved };
+      }
+
       savePerfil({ areas_mejorar: t });
       saved.push({ field: 'áreas', value: t });
 
@@ -323,8 +347,18 @@ function processAnswer(text, questionId, central) {
     case 'habito_3':
     case 'habito_mas': {
       // "sigo", "estoy bien", "no más" → stop loop
-      if (/^(sigo|no m[aá]s|estoy bien|suficiente|listo|ya|eso|nada m[aá]s|con eso)/.test(tl)) {
+      if (/(^|\b)(sigo|no m[aá]s|no mas|estoy bien|esta bien|est[aá] bien|estoy bien as[ií]|bien as[ií]|ya est[aá]|ya estuvo|eso|con eso|suficiente|listo|ya$|dale|ok|eso est[aá] bien|nada m[aá]s|no|nah|nop|basta)/i.test(tl)) {
         return { messages: ['Perfecto, con eso partimos. 👍'], saved };
+      }
+
+      // "ya te dije" / "ya lo dijiste" → don't save, apologize
+      if (/(ya te dije|ya lo dije|ya respond[ií]|ya lo dijiste|ya me preguntaste|ya te cont[eé])/i.test(tl)) {
+        return { messages: ['Perdón, a veces me repito 😅 Sigamos.'], saved };
+      }
+
+      // "no sé" / "nose" / "ni idea" → don't save
+      if (/^(no s[eé]|nose|ni idea|no tengo idea|ninguno|nada|paso|skip|ns)$/i.test(tl)) {
+        return { messages: ['Tranqui, cuando se te ocurra algo me dices. 😊'], saved };
       }
 
       const habitsCreated = extractHabitsFromText(t, central);
@@ -359,6 +393,21 @@ function processAnswer(text, questionId, central) {
         return { messages: ['Jaja ojalá todos pudiéramos decir eso 😄 Sigamos.'], saved };
       }
 
+      // "ya te dije" / "ya lo dijiste" → don't save, apologize
+      if (/(ya te dije|ya lo dije|ya respond[ií]|ya lo dijiste|ya me preguntaste|ya te cont[eé])/i.test(tl)) {
+        return { messages: ['Perdón, a veces me repito 😅 Sigamos.'], saved };
+      }
+
+      // "no sé" / "nose" / "ni idea" → don't save
+      if (/^(no s[eé]|nose|ni idea|no tengo idea|paso|skip|ns)$/i.test(tl)) {
+        return { messages: ['Tranqui, si se te ocurre después me dices. 😊'], saved };
+      }
+
+      // Stop phrases — don't save as bad habit
+      if (/(^|\b)(sigo|no m[aá]s|no mas|estoy bien|esta bien|est[aá] bien|estoy bien as[ií]|bien as[ií]|ya est[aá]|ya estuvo|eso|con eso|suficiente|listo|ya$|dale|ok|eso est[aá] bien|nada m[aá]s|nah|nop|basta)/i.test(tl)) {
+        return { messages: ['Dale, seguimos. 👍'], saved };
+      }
+
       const malosCreated = extractMalosFromText(t);
       if (malosCreated.length > 0) {
         malosCreated.forEach(m => {
@@ -385,8 +434,18 @@ function processAnswer(text, questionId, central) {
     }
 
     case 'objetivo': {
-      if (/^(no s[eé]|nose|nada|paso|skip)$/i.test(tl)) {
+      if (/^(no s[eé]|nose|nada|paso|skip|ni idea|no tengo idea|ns)$/i.test(tl)) {
         return { messages: ['Tranqui, cuando se te ocurra algo me dices.'], saved };
+      }
+
+      // "ya te dije" / "ya lo dijiste" → don't save
+      if (/(ya te dije|ya lo dije|ya respond[ií]|ya lo dijiste|ya me preguntaste|ya te cont[eé])/i.test(tl)) {
+        return { messages: ['Perdón, a veces me repito 😅 Sigamos.'], saved };
+      }
+
+      // Stop phrases → don't save as objective
+      if (/(^|\b)(sigo|no m[aá]s|no mas|estoy bien|esta bien|est[aá] bien|estoy bien as[ií]|bien as[ií]|ya est[aá]|ya estuvo|eso|con eso|suficiente|listo|ya$|dale|ok|nah|nop|basta)/i.test(tl)) {
+        return { messages: ['Dale, seguimos. 👍'], saved };
       }
       let objName = t.replace(/^(quiero|me gustaría|quisiera|mi meta es)\s*/i, '').trim();
       if (objName.length > 2) {
@@ -455,6 +514,21 @@ function processAnswer(text, questionId, central) {
     }
 
     case 'objetivos_vida': {
+      // "no sé" / "nose" / "ni idea" → don't save
+      if (/^(no s[eé]|nose|ni idea|no tengo idea|nada|paso|skip|ns)$/i.test(tl)) {
+        return { messages: ['Tranqui, cuando lo tengas claro me dices.'], saved };
+      }
+
+      // "ya te dije" / "ya lo dijiste" → don't save
+      if (/(ya te dije|ya lo dije|ya respond[ií]|ya lo dijiste|ya me preguntaste|ya te cont[eé])/i.test(tl)) {
+        return { messages: ['Perdón, a veces me repito 😅 Sigamos.'], saved };
+      }
+
+      // Stop phrases → don't save
+      if (/(^|\b)(sigo|no m[aá]s|no mas|estoy bien|esta bien|est[aá] bien|estoy bien as[ií]|bien as[ií]|ya est[aá]|ya estuvo|eso|con eso|suficiente|listo|ya$|dale|ok|nah|nop|basta)/i.test(tl)) {
+        return { messages: ['Dale, seguimos. 👍'], saved };
+      }
+
       savePerfil({ objetivos: t });
       saved.push({ field: 'visión', value: t });
       return {
@@ -1219,20 +1293,19 @@ router.post('/chat', (req, res) => {
       msgs.push(nextQ.text);
     }
 
-    // All done message
-    if (!nextQ && !answerResult.retry && msgs.length > 0) {
+    // Setup complete message (but keep chat alive)
+    const setupComplete = !nextQ && !answerResult.retry && updated.habits.length >= 1;
+    if (setupComplete && msgs.length > 0 && !answerResult.retry) {
       const nombre = updated.perfil?.nombre || '';
-      const allDone = updated.habits.length >= 3 && updated.malos.length >= 1;
-      if (allDone) {
-        msgs.push(`${nombre ? nombre + ', ¡l' : '¡L'}isto! Ya tienes todo configurado. Ahora solo usa la app día a día y cuéntame cómo te va. Estoy aquí siempre que me necesites. 💛`);
-      }
+      msgs.push(`${nombre ? nombre + ', y' : 'Y'}a tienes lo básico configurado. Ahora puedes preguntarme lo que quieras — cómo va tu día, tus hábitos, o simplemente conversar. También puedes entrar a ver tu <a href="/demo">dashboard</a>. 💛`);
     }
 
     res.json({
       messages: msgs,
       nextQuestion: nextQ ? nextQ.id : null,
       saved: answerResult.saved || [],
-      allDone: !nextQ && !answerResult.retry,
+      setupComplete: setupComplete,
+      allDone: false, // never end the chat — keep it alive
     });
   } catch(e) {
     console.error('Clauch error:', e);

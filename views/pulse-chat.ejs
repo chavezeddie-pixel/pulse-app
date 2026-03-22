@@ -550,13 +550,13 @@
         }, delay);
       }
 
-      // All done
-      if (data.allDone && !data.nextQuestion) {
+      // Setup complete — show dashboard link but keep chat alive
+      if (data.setupComplete && !conversationDone) {
         conversationDone = true;
+        skipLink.style.display = 'block';
         var doneDelay = ((data.messages ? data.messages.length : 0) + 1) * 500 + 400;
         setTimeout(function() {
-          addDone('Todo listo. Tu app está configurada.<br/><a href="javascript:void(0)" onclick="window._enterDashboard()">Entrar a Pulse →</a>');
-          skipLink.style.display = 'block';
+          addDone('<a href="javascript:void(0)" onclick="window._enterDashboard()">Entrar a Pulse →</a>');
         }, doneDelay);
       }
 
